@@ -1,3 +1,10 @@
+gdb-doc (6.4.50.20060511-2) unstable; urgency=low
+
+  * Correct a typo in debian/gdb-doc.info which caused install-info
+    to be skipped.
+
+ -- Daniel Jacobowitz <dan@debian.org>  Fri, 12 May 2006 09:03:07 -0400
+
 gdb-doc (6.4.50.20060511-1) unstable; urgency=low
 
   * New package, containing only the GDB manuals, based on the previous
