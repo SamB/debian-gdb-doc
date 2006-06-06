@@ -9,7 +9,7 @@ END-INFO-DIR-ENTRY
    This file documents the GNU debugger GDB.
 
    This is the Ninth Edition, of `Debugging with GDB: the GNU
-Source-Level Debugger' for GDB Version 6.4.50.20060511.
+Source-Level Debugger' for GDB Version 6.4.90.
 
    Copyright (C) 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996,
 1998,
@@ -1025,7 +1025,7 @@ Index
 * core-file:                             Files.               (line  97)
 * crash of debugger:                     Bug Criteria.        (line   9)
 * CRC of memory block, remote request:   General Query Packets.
-                                                              (line  50)
+                                                              (line  51)
 * CRIS:                                  CRIS.                (line   6)
 * CRIS mode:                             CRIS.                (line  26)
 * CRIS version:                          CRIS.                (line  10)
@@ -1034,7 +1034,7 @@ Index
 * current stack frame:                   Frames.              (line  45)
 * current thread:                        Threads.             (line  38)
 * current thread, remote request:        General Query Packets.
-                                                              (line  40)
+                                                              (line  41)
 * cwd:                                   Source Path.         (line  55)
 * Cygwin-specific commands:              Cygwin Native.       (line   6)
 * d (delete):                            Delete Breaks.       (line  36)
@@ -1216,7 +1216,7 @@ Index
 * executable file target:                Target Commands.     (line  50)
 * execute commands from a file:          Command Files.       (line  14)
 * execute remote command, remote request: General Query Packets.
-                                                              (line 233)
+                                                              (line 234)
 * exited:                                Annotations for Running.
                                                               (line  18)
 * exiting GDB:                           Quitting GDB.        (line   6)
@@ -1343,7 +1343,7 @@ Index
 * generate-core-file:                    Core File Generation.
                                                               (line  18)
 * get thread-local storage address, remote request: General Query Packets.
-                                                              (line  86)
+                                                              (line  87)
 * getDebugChar:                          Bootstrapping.       (line  14)
 * gettimeofday, file-i/o system call:    gettimeofday.        (line   6)
 * global debugging information directory: Separate Debug Files.
@@ -1576,7 +1576,7 @@ Index
 * Linux lightweight processes:           Debugging Output.    (line  66)
 * list:                                  List.                (line   6)
 * list active threads, remote request:   General Query Packets.
-                                                              (line  59)
+                                                              (line  60)
 * list of supported file-i/o calls:      List of supported calls.
                                                               (line   6)
 * list output in GDB/MI:                 GDB/MI Output Syntax.
@@ -1744,6 +1744,7 @@ Index
 * Modula-2 constants:                    Built-In Func/Proc.  (line 109)
 * Modula-2 defaults:                     M2 Defaults.         (line   6)
 * Modula-2 operators:                    M2 Operators.        (line   6)
+* Modula-2 types:                        M2 Types.            (line   6)
 * Modula-2, deviations from:             Deviations.          (line   6)
 * Modula-2, GDB support:                 Modula-2.            (line   6)
 * monitor:                               Connecting.          (line 104)
@@ -1945,28 +1946,28 @@ Index
 * Q packet:                              Packets.             (line 226)
 * q packet:                              Packets.             (line 226)
 * qC packet:                             General Query Packets.
-                                                              (line  40)
+                                                              (line  41)
 * qCRC packet:                           General Query Packets.
-                                                              (line  50)
+                                                              (line  51)
 * qfThreadInfo packet:                   General Query Packets.
-                                                              (line  59)
+                                                              (line  60)
 * qGetTLSAddr packet:                    General Query Packets.
-                                                              (line  86)
+                                                              (line  87)
 * QNX Neutrino:                          Neutrino.            (line   6)
 * qOffsets packet:                       General Query Packets.
-                                                              (line 142)
+                                                              (line 143)
 * qP packet:                             General Query Packets.
-                                                              (line 151)
+                                                              (line 152)
 * qPart packet:                          General Query Packets.
-                                                              (line 160)
+                                                              (line 161)
 * qRcmd packet:                          General Query Packets.
-                                                              (line 233)
+                                                              (line 234)
 * qsThreadInfo packet:                   General Query Packets.
-                                                              (line  59)
+                                                              (line  60)
 * qSymbol packet:                        General Query Packets.
-                                                              (line 258)
+                                                              (line 259)
 * qThreadExtraInfo packet:               General Query Packets.
-                                                              (line 294)
+                                                              (line 295)
 * query:                                 Prompting.           (line  36)
 * quit:                                  Errors.              (line   6)
 * quit [EXPRESSION]:                     Quitting GDB.        (line   6)
@@ -1988,7 +1989,7 @@ Index
 * re-read-init-file (C-x C-r):           Miscellaneous Commands.
                                                               (line   6)
 * read special object, remote request:   General Query Packets.
-                                                              (line 160)
+                                                              (line 161)
 * read, file-i/o system call:            read.                (line   6)
 * read-only sections:                    Files.               (line 258)
 * reading symbols from relocatable object files: Files.       (line 132)
@@ -2108,7 +2109,7 @@ Index
 * searching source files:                Search.              (line   6)
 * section:                               Files.               (line 182)
 * section offsets, remote request:       General Query Packets.
-                                                              (line 142)
+                                                              (line 143)
 * segment descriptor tables:             DJGPP Native.        (line  24)
 * select trace snapshot:                 tfind.               (line   6)
 * select-frame:                          Frames.              (line  51)
@@ -2518,7 +2519,7 @@ Index
 * symbol dump:                           Symbols.             (line 250)
 * symbol from address:                   Symbols.             (line  54)
 * symbol lookup, remote request:         General Query Packets.
-                                                              (line 258)
+                                                              (line 259)
 * symbol names:                          Symbols.             (line  14)
 * symbol overloading:                    Breakpoint Menus.    (line   6)
 * symbol table:                          Files.               (line   6)
@@ -2595,7 +2596,7 @@ Index
                                                               (line  22)
 * thread apply:                          Threads.             (line 143)
 * thread attributes info, remote request: General Query Packets.
-                                                              (line 294)
+                                                              (line 295)
 * thread breakpoints:                    Thread Stops.        (line  10)
 * thread breakpoints and system calls:   Thread Stops.        (line  36)
 * thread default settings, GNU Hurd:     Hurd Native.         (line 131)
@@ -2605,7 +2606,7 @@ Index
 * thread identifier (system), on HP-UX:  Threads.             (line  86)
 * thread info (Solaris):                 Threads.             (line 126)
 * thread information, remote request:    General Query Packets.
-                                                              (line 151)
+                                                              (line 152)
 * thread local storage of remote targets: Remote configuration.
                                                               (line 168)
 * thread number:                         Threads.             (line  56)
@@ -2753,7 +2754,7 @@ Index
 * working directory (of your program):   Working Directory.   (line   6)
 * working language:                      Languages.           (line  13)
 * write data into object, remote request: General Query Packets.
-                                                              (line 199)
+                                                              (line 200)
 * write, file-i/o system call:           write.               (line   6)
 * writing into corefiles:                Patching.            (line   6)
 * writing into executables:              Patching.            (line   6)

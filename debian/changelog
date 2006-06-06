@@ -1,3 +1,9 @@
+gdb-doc (6.4.90-1) unstable; urgency=low
+
+  * New upstream release (GDB 6.5 prerelease).
+
+ -- Daniel Jacobowitz <dan@debian.org>  Tue,  6 Jun 2006 09:01:23 -0400
+
 gdb-doc (6.4.50.20060511-2) unstable; urgency=low
 
   * Correct a typo in debian/gdb-doc.info which caused install-info

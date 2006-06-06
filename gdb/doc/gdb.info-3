@@ -9,7 +9,7 @@ END-INFO-DIR-ENTRY
    This file documents the GNU debugger GDB.
 
    This is the Ninth Edition, of `Debugging with GDB: the GNU
-Source-Level Debugger' for GDB Version 6.4.50.20060511.
+Source-Level Debugger' for GDB Version 6.4.90.
 
    Copyright (C) 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996,
 1998,
@@ -4737,19 +4737,18 @@ and TeX (or `texi2roff') to typeset the printed version.
 
    GDB includes an already formatted copy of the on-line Info version
 of this manual in the `gdb' subdirectory.  The main Info file is
-`gdb-6.4.50.20060511/gdb/gdb.info', and it refers to subordinate files
-matching `gdb.info*' in the same directory.  If necessary, you can
-print out these files, or read them with any editor; but they are
-easier to read using the `info' subsystem in GNU Emacs or the
-standalone `info' program, available as part of the GNU Texinfo
-distribution.
+`gdb-6.4.90/gdb/gdb.info', and it refers to subordinate files matching
+`gdb.info*' in the same directory.  If necessary, you can print out
+these files, or read them with any editor; but they are easier to read
+using the `info' subsystem in GNU Emacs or the standalone `info'
+program, available as part of the GNU Texinfo distribution.
 
    If you want to format these Info files yourself, you need one of the
 Info formatting programs, such as `texinfo-format-buffer' or `makeinfo'.
 
    If you have `makeinfo' installed, and are in the top level GDB
-source directory (`gdb-6.4.50.20060511', in the case of version
-6.4.50.20060511), you can make the Info file by typing:
+source directory (`gdb-6.4.90', in the case of version 6.4.90), you can
+make the Info file by typing:
 
      cd gdb
      make gdb.info
@@ -4774,8 +4773,7 @@ format.  On its own, TeX cannot either read or typeset a Texinfo file.
 
    If you have TeX and a DVI printer program installed, you can typeset
 and print this manual.  First switch to the the `gdb' subdirectory of
-the main source directory (for example, to `gdb-6.4.50.20060511/gdb')
-and type:
+the main source directory (for example, to `gdb-6.4.90/gdb') and type:
 
      make gdb.dvi
 
@@ -4783,8 +4781,7 @@ and type:
 
    ---------- Footnotes ----------
 
-   (1) In `gdb-6.4.50.20060511/gdb/refcard.ps' of the version
-6.4.50.20060511 release.
+   (1) In `gdb-6.4.90/gdb/refcard.ps' of the version 6.4.90 release.
 
 
 File: gdb.info,  Node: Installing GDB,  Next: Maintenance Commands,  Prev: Using History Interactively,  Up: Top
@@ -4800,39 +4797,39 @@ preparing GDB for installation; you can then use `make' to build the
 in a single directory, whose name is usually composed by appending the
 version number to `gdb'.
 
-   For example, the GDB version 6.4.50.20060511 distribution is in the
-`gdb-6.4.50.20060511' directory.  That directory contains:
+   For example, the GDB version 6.4.90 distribution is in the
+`gdb-6.4.90' directory.  That directory contains:
 
-`gdb-6.4.50.20060511/configure (and supporting files)'
+`gdb-6.4.90/configure (and supporting files)'
      script for configuring GDB and all its supporting libraries
 
-`gdb-6.4.50.20060511/gdb'
+`gdb-6.4.90/gdb'
      the source specific to GDB itself
 
-`gdb-6.4.50.20060511/bfd'
+`gdb-6.4.90/bfd'
      source for the Binary File Descriptor library
 
-`gdb-6.4.50.20060511/include'
+`gdb-6.4.90/include'
      GNU include files
 
-`gdb-6.4.50.20060511/libiberty'
+`gdb-6.4.90/libiberty'
      source for the `-liberty' free software library
 
-`gdb-6.4.50.20060511/opcodes'
+`gdb-6.4.90/opcodes'
      source for the library of opcode tables and disassemblers
 
-`gdb-6.4.50.20060511/readline'
+`gdb-6.4.90/readline'
      source for the GNU command-line interface
 
-`gdb-6.4.50.20060511/glob'
+`gdb-6.4.90/glob'
      source for the GNU filename pattern-matching subroutine
 
-`gdb-6.4.50.20060511/mmalloc'
+`gdb-6.4.90/mmalloc'
      source for the GNU memory-mapped malloc package
 
    The simplest way to configure and build GDB is to run `configure'
 from the `gdb-VERSION-NUMBER' source directory, which in this example
-is the `gdb-6.4.50.20060511' directory.
+is the `gdb-6.4.90' directory.
 
    First switch to the `gdb-VERSION-NUMBER' source directory if you are
 not already in it; then run `configure'.  Pass the identifier for the
@@ -4840,7 +4837,7 @@ platform on which GDB will run as an argument.
 
    For example:
 
-     cd gdb-6.4.50.20060511
+     cd gdb-6.4.90
      ./configure HOST
      make
 
@@ -4862,9 +4859,9 @@ you may need to run `sh' on it explicitly:
 
    If you run `configure' from a directory that contains source
 directories for multiple libraries or programs, such as the
-`gdb-6.4.50.20060511' source directory for version 6.4.50.20060511,
-`configure' creates configuration files for every directory level
-underneath (unless you tell it not to, with the `--norecursion' option).
+`gdb-6.4.90' source directory for version 6.4.90, `configure' creates
+configuration files for every directory level underneath (unless you
+tell it not to, with the `--norecursion' option).
 
    You should run the `configure' script from the top directory in the
 source tree, the `gdb-VERSION-NUMBER' directory.  If you run
@@ -4909,13 +4906,13 @@ directory.  If the path to `configure' would be the same as the
 argument to `--srcdir', you can leave out the `--srcdir' option; it is
 assumed.)
 
-   For example, with version 6.4.50.20060511, you can build GDB in a
-separate directory for a Sun 4 like this:
+   For example, with version 6.4.90, you can build GDB in a separate
+directory for a Sun 4 like this:
 
-     cd gdb-6.4.50.20060511
+     cd gdb-6.4.90
      mkdir ../gdb-sun4
      cd ../gdb-sun4
-     ../gdb-6.4.50.20060511/configure sun4
+     ../gdb-6.4.90/configure sun4
      make
 
    When `configure' builds a configuration using a remote source
@@ -4926,7 +4923,7 @@ directory `gdb-sun4/libiberty', and GDB itself in `gdb-sun4/gdb'.
 
    Make sure that your path to the `configure' script has just one
 instance of `gdb' in it.  If your path to `configure' looks like
-`../gdb-6.4.50.20060511/gdb/configure', you are configuring only one
+`../gdb-6.4.90/gdb/configure', you are configuring only one
 subdirectory of GDB, not the whole package.  This leads to build errors
 about missing include files such as `bfd/bfd.h'.
 
@@ -4942,9 +4939,9 @@ called `configure' (or one of its subdirectories).
 
    The `Makefile' that `configure' generates in each source directory
 also runs recursively.  If you type `make' in a source directory such
-as `gdb-6.4.50.20060511' (or in a separate configured directory
-configured with `--srcdir=DIRNAME/gdb-6.4.50.20060511'), you will build
-all the required libraries, and then build GDB.
+as `gdb-6.4.90' (or in a separate configured directory configured with
+`--srcdir=DIRNAME/gdb-6.4.90'), you will build all the required
+libraries, and then build GDB.
 
    When you have multiple hosts or targets configured in separate
 directories, you can run `make' on them in parallel (for example, if
@@ -4988,7 +4985,7 @@ you can use it to test your guesses on abbreviations--for example:
      Invalid configuration `i986v': machine `i986v' not recognized
 
 `config.sub' is also distributed in the GDB source directory
-(`gdb-6.4.50.20060511', for version 6.4.50.20060511).
+(`gdb-6.4.90', for version 6.4.90).
 
 
 File: gdb.info,  Node: Configure Options,  Prev: Config Names,  Up: Installing GDB
@@ -5929,9 +5926,10 @@ stub.  These packet names follow some conventions:
 
    The name of a query or set packet should be separated from any
 parameters by a `:'; the parameters themselves should be separated by
-`,' or `;'.  Stubs must be careful to match the full packet name, in
-case packet names have common prefixes.  New packets should not begin
-with `qP' or `qL'(1).
+`,' or `;'.  Stubs must be careful to match the full packet name, and
+check for a separator or the end of the packet, in case two packet
+names share a common prefix.  New packets should not begin with `qC',
+`qP', or `qL'(1).
 
    Like the descriptions of the other packets, each description here
 has a template showing the packet's overall syntax, followed by an
@@ -6224,9 +6222,11 @@ GDB packet uses spaces to separate its components.
 
    ---------- Footnotes ----------
 
-   (1) The `qP' and `qL' packets predate these conventions, and don't
-have any terminator for the packet name; we suspect they are in
-widespread use in places that are difficult to upgrade.
+   (1) The `qP' and `qL' packets predate these conventions, and have
+arguments without any terminator for the packet name; we suspect they
+are in widespread use in places that are difficult to upgrade.  The
+`qC' packet has no arguments, but some existing stubs (e.g. RedBoot)
+are known to not check for the end of the packet.
 
 
 File: gdb.info,  Node: Register Packet Format,  Next: Tracepoint Packets,  Prev: General Query Packets,  Up: Remote Protocol
