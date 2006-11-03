@@ -1,3 +1,10 @@
+gdb-doc (6.5-1) unstable; urgency=low
+
+  * New upstream release.
+  * Update Standards-Version to 3.7.2 (no changes required).
+
+ -- Daniel Jacobowitz <dan@debian.org>  Fri,  3 Nov 2006 00:48:36 -0500
+
 gdb-doc (6.4.90-1) unstable; urgency=low
 
   * New upstream release (GDB 6.5 prerelease).
