@@ -1,3 +1,10 @@
+gdb-doc (6.6.90.20070912-1) unstable; urgency=low
+
+  * New upstream release.
+  * Update copyright notice.
+
+ -- Daniel Jacobowitz <dan@debian.org>  Mon, 17 Sep 2007 15:46:47 -0400
+
 gdb-doc (6.6-1) unstable; urgency=low
 
   * New upstream release.

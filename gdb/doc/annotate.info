@@ -118,7 +118,7 @@ specific GDB commands provide specific information.  Any change to
 GDB's CLI output modifies or removes that information and,
 consequently, likely breaks the client.
 
-   Since the GDB/MI output is independant of the CLI, it does not have
+   Since the GDB/MI output is independent of the CLI, it does not have
 this problem.
 
 2.2 Scalability
@@ -161,8 +161,8 @@ The annotation mechanism was implemented by interspersing CLI print
 statements with various annotations.  As a consequence, any CLI output
 change can alter the annotation output.
 
-   Since the GDB/MI output is independant of the CLI, and the GDB/MI is
-increasingly implemented independant of the CLI code, its long term
+   Since the GDB/MI output is independent of the CLI, and the GDB/MI is
+increasingly implemented independent of the CLI code, its long term
 maintenance is much easier.
 
 

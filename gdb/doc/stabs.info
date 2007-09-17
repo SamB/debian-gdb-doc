@@ -989,7 +989,7 @@ start of the relevant section for that compilation unit.  SunPRO has
 plans to have the linker stop relocating stabs; I suspect that their the
 debugger gets the address from the corresponding ELF (not stab) symbol.
 I'm not sure how to find which symbol of that name is the right one.
-The clean way to do all this would be to have a the value of a symbol
+The clean way to do all this would be to have the value of a symbol
 descriptor `S' symbol be an offset relative to the start of the file,
 just like everything else, but that introduces obvious compatibility
 problems.  For more information on linker stab relocation, *Note ELF
@@ -4449,75 +4449,75 @@ Node: Global Variables37018
 Node: Register Variables38174
 Node: Common Blocks38996
 Node: Statics40250
-Node: Based Variables42831
-Node: Parameters44216
-Node: Register Parameters45828
-Node: Local Variable Parameters48089
-Node: Reference Parameters51004
-Node: Conformant Arrays51624
-Node: Types52341
-Node: Builtin Types53288
-Node: Traditional Builtin Types54434
-Node: Traditional Integer Types54835
-Node: Traditional Other Types57143
-Node: Builtin Type Descriptors58057
-Node: Negative Type Numbers61557
-Node: Miscellaneous Types67912
-Node: Cross-References69798
-Node: Subranges71473
-Node: Arrays72712
-Node: Strings75937
-Node: Enumerations76999
-Node: Structures79384
-Node: Typedefs82091
-Node: Unions83415
-Node: Function Types84996
-Node: Macro define and undefine86578
-Node: Symbol Tables88155
-Node: Symbol Table Format88607
-Node: Transformations On Symbol Tables90055
-Node: Transformations On Static Variables91409
-Node: Transformations On Global Variables92145
-Node: Stab Section Transformations93388
-Node: Cplusplus94771
-Node: Class Names95354
-Node: Nested Symbols96099
-Node: Basic Cplusplus Types96945
-Node: Simple Classes98505
-Node: Class Instance102799
-Node: Methods103516
-Node: Method Type Descriptor105735
-Node: Member Type Descriptor106935
-Node: Protections107727
-Node: Method Modifiers110817
-Node: Virtual Methods112445
-Node: Inheritance116246
-Node: Virtual Base Classes119942
-Node: Static Members122186
-Node: Stab Types122656
-Node: Non-Stab Symbol Types123280
-Node: Stab Symbol Types124711
-Node: Symbol Descriptors128642
-Node: Type Descriptors131421
-Node: Expanded Reference134633
-Node: N_PC136051
-Node: N_NSYMS136419
-Node: N_NOMAP136660
-Node: N_M2C136966
-Node: N_BROWS137400
-Node: N_DEFD137683
-Node: N_EHDECL138140
-Node: N_MOD2138391
-Node: N_CATCH138629
-Node: N_SSYM139123
-Node: N_SCOPE139408
-Node: Gould139598
-Node: N_LENG140590
-Node: Questions140818
-Node: Stab Sections142462
-Node: Stab Section Basics143060
-Node: ELF Linker Relocation146401
-Node: GNU Free Documentation License149811
-Node: Symbol Types Index172245
+Node: Based Variables42829
+Node: Parameters44214
+Node: Register Parameters45826
+Node: Local Variable Parameters48087
+Node: Reference Parameters51002
+Node: Conformant Arrays51622
+Node: Types52339
+Node: Builtin Types53286
+Node: Traditional Builtin Types54432
+Node: Traditional Integer Types54833
+Node: Traditional Other Types57141
+Node: Builtin Type Descriptors58055
+Node: Negative Type Numbers61555
+Node: Miscellaneous Types67910
+Node: Cross-References69796
+Node: Subranges71471
+Node: Arrays72710
+Node: Strings75935
+Node: Enumerations76997
+Node: Structures79382
+Node: Typedefs82089
+Node: Unions83413
+Node: Function Types84994
+Node: Macro define and undefine86576
+Node: Symbol Tables88153
+Node: Symbol Table Format88605
+Node: Transformations On Symbol Tables90053
+Node: Transformations On Static Variables91407
+Node: Transformations On Global Variables92143
+Node: Stab Section Transformations93386
+Node: Cplusplus94769
+Node: Class Names95352
+Node: Nested Symbols96097
+Node: Basic Cplusplus Types96943
+Node: Simple Classes98503
+Node: Class Instance102797
+Node: Methods103514
+Node: Method Type Descriptor105733
+Node: Member Type Descriptor106933
+Node: Protections107725
+Node: Method Modifiers110815
+Node: Virtual Methods112443
+Node: Inheritance116244
+Node: Virtual Base Classes119940
+Node: Static Members122184
+Node: Stab Types122654
+Node: Non-Stab Symbol Types123278
+Node: Stab Symbol Types124709
+Node: Symbol Descriptors128640
+Node: Type Descriptors131419
+Node: Expanded Reference134631
+Node: N_PC136049
+Node: N_NSYMS136417
+Node: N_NOMAP136658
+Node: N_M2C136964
+Node: N_BROWS137398
+Node: N_DEFD137681
+Node: N_EHDECL138138
+Node: N_MOD2138389
+Node: N_CATCH138627
+Node: N_SSYM139121
+Node: N_SCOPE139406
+Node: Gould139596
+Node: N_LENG140588
+Node: Questions140816
+Node: Stab Sections142460
+Node: Stab Section Basics143058
+Node: ELF Linker Relocation146399
+Node: GNU Free Documentation License149809
+Node: Symbol Types Index172243
 
 End Tag Table

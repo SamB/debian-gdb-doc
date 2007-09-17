@@ -6,7 +6,7 @@ GDB itself is Copyright (C) Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
+   the Free Software Foundation; either version 3 of the License, or
    (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
@@ -15,9 +15,7 @@ GDB itself is Copyright (C) Free Software Foundation, Inc.
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 On Debian GNU/Linux systems, the complete text of the GNU General
 Public License can be found in `/usr/share/common-licenses'.
@@ -32,14 +30,13 @@ Documentation License, shown below, with these terms:
    Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.1 or
 any later version published by the Free Software Foundation; with the
-Invariant Sections being "Free Software" and "Free Software Needs Free
-Documentation", with the Front-Cover Texts being "A GNU Manual," and
-with the Back-Cover Texts as in (a) below.
+Invariant Sections being "Free Software" and "Free Software Needs
+Free Documentation", with the Front-Cover Texts being "A GNU Manual,"
+and with the Back-Cover Texts as in (a) below.
 
-   (a) The Free Software Foundation's Back-Cover Text is: "You have
-freedom to copy and modify this GNU Manual, like GNU software.  Copies
-published by the Free Software Foundation raise funds for GNU
-development."
+(a) The FSF's Back-Cover Text is: "You are free to copy and modify
+this GNU Manual.  Buying copies from GNU Press supports the FSF in
+developing GNU and promoting software freedom."
 
 
 GNU Free Documentation License

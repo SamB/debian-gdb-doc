@@ -9,7 +9,7 @@ END-INFO-DIR-ENTRY
    This file documents the GNU debugger GDB.
 
    This is the Ninth Edition, of `Debugging with GDB: the GNU
-Source-Level Debugger' for GDB Version 6.6.
+Source-Level Debugger' for GDB Version 6.6.90.20070912.
 
    Copyright (C) 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996,
 1998,
@@ -23,10 +23,9 @@ Invariant Sections being "Free Software" and "Free Software Needs Free
 Documentation", with the Front-Cover Texts being "A GNU Manual," and
 with the Back-Cover Texts as in (a) below.
 
-   (a) The Free Software Foundation's Back-Cover Text is: "You have
-freedom to copy and modify this GNU Manual, like GNU software.  Copies
-published by the Free Software Foundation raise funds for GNU
-development."
+   (a) The FSF's Back-Cover Text is: "You are free to copy and modify
+this GNU Manual.  Buying copies from GNU Press supports the FSF in
+developing GNU and promoting software freedom."
 
 
 File: gdb.info,  Node: Top,  Next: Summary,  Prev: (dir),  Up: (dir)
@@ -36,9 +35,13 @@ Debugging with GDB
 
 This file describes GDB, the GNU symbolic debugger.
 
-   This is the Ninth Edition, for GDB Version 6.6.
+   This is the Ninth Edition, for GDB Version 6.6.90.20070912.
 
    Copyright (C) 1988-2006 Free Software Foundation, Inc.
+
+   This edition of the GDB manual is dedicated to the memory of Fred
+Fish.  Fred was a long-standing contributor to GDB and to Free software
+in general.  We will miss him.
 
 * Menu:
 
@@ -66,21 +69,23 @@ This file describes GDB, the GNU symbolic debugger.
 * Configurations::              Configuration-specific information
 * Controlling GDB::             Controlling GDB
 * Sequences::                   Canned sequences of commands
-* TUI::                         GDB Text User Interface
 * Interpreters::		Command Interpreters
+* TUI::                         GDB Text User Interface
 * Emacs::                       Using GDB under GNU Emacs
-* Annotations::                 GDB's annotation interface.
 * GDB/MI::                      GDB's Machine Interface.
+* Annotations::                 GDB's annotation interface.
 
 * GDB Bugs::                    Reporting bugs in GDB
-* Formatting Documentation::    How to format and print GDB documentation
 
 * Command Line Editing::        Command Line Editing
 * Using History Interactively:: Using History Interactively
+* Formatting Documentation::    How to format and print GDB documentation
 * Installing GDB::              Installing GDB
 * Maintenance Commands::        Maintenance Commands
 * Remote Protocol::             GDB Remote Serial Protocol
 * Agent Expressions::           The GDB Agent Expression Mechanism
+* Target Descriptions::         How targets can describe themselves to
+                                GDB
 * Copying::			GNU General Public License says
                                 how you can copy and share GDB
 * GNU Free Documentation License::  The license for this documentation
@@ -110,7 +115,7 @@ these) to help you catch bugs in the act:
      correcting the effects of one bug and go on to learn about another.
 
    You can use GDB to debug programs written in C and C++.  For more
-information, see *Note Supported languages: Supported languages.  For
+information, see *Note Supported Languages: Supported Languages.  For
 more information, see *Note C and C++: C.
 
    Support for Modula-2 is partial.  For information on Modula-2, see
@@ -135,7 +140,7 @@ either the Apple/NeXT or the GNU Objective-C runtime.
 
 File: gdb.info,  Node: Free Software,  Next: Contributors,  Up: Summary
 
-Free software
+Free Software
 =============
 
 GDB is "free software", protected by the GNU General Public License
@@ -394,7 +399,7 @@ unwinder framework, this consisting of a fresh new design featuring
 frame IDs, independent frame sniffers, and the sentinel frame.  Mark
 Kettenis implemented the DWARF 2 unwinder, Jeff Johnston the libunwind
 unwinder, and Andrew Cagney the dummy, sentinel, tramp, and trad
-unwinders.  The architecture specific changes, each involving a
+unwinders.  The architecture-specific changes, each involving a
 complete rewrite of the architecture's frame code, were carried out by
 Jim Blandy, Joel Brobecker, Kevin Buettner, Andrew Cagney, Stephane
 Carrez, Randolph Chung, Orjan Friberg, Richard Henderson, Daniel
@@ -453,7 +458,7 @@ Let us use GDB to try to see what is going on.
      There is absolutely no warranty for GDB; type "show warranty"
       for details.
 
-     GDB 6.6, Copyright 1999 Free Software Foundation, Inc...
+     GDB 6.6.90.20070912, Copyright 1999 Free Software Foundation, Inc...
      (gdb)
 
 GDB reads only enough symbol data to know where to find the rest when
@@ -635,7 +640,7 @@ essentials are:
 * Invoking GDB::                How to start GDB
 * Quitting GDB::                How to quit GDB
 * Shell Commands::              How to use shell commands inside GDB
-* Logging output::              How to log GDB's output to a file
+* Logging Output::              How to log GDB's output to a file
 
 
 File: gdb.info,  Node: Invoking GDB,  Next: Quitting GDB,  Up: Invocation
@@ -712,14 +717,14 @@ used.
 
 File: gdb.info,  Node: File Options,  Next: Mode Options,  Up: Invoking GDB
 
-2.1.1 Choosing files
+2.1.1 Choosing Files
 --------------------
 
 When GDB starts, it reads any arguments other than options as
 specifying an executable file and core file (or process ID).  This is
 the same as if the arguments were specified by the `-se' and `-c' (or
-`-p' options respectively.  (GDB reads the first argument that does not
-have an associated option flag as equivalent to the `-se' option
+`-p') options respectively.  (GDB reads the first argument that does
+not have an associated option flag as equivalent to the `-se' option
 followed by that argument; and the second argument that does not have
 an associated option flag, if any, as equivalent to the `-c'/`-p'
 option followed by that argument.)  If the second argument begins with
@@ -792,7 +797,7 @@ them, so long as enough of the option is present to be unambiguous.
 
 File: gdb.info,  Node: Mode Options,  Next: Startup,  Prev: File Options,  Up: Invoking GDB
 
-2.1.2 Choosing modes
+2.1.2 Choosing Modes
 --------------------
 
 You can run GDB in various alternative modes--for example, in batch
@@ -803,7 +808,7 @@ mode or quiet mode.
      Do not execute commands found in any initialization files.
      Normally, GDB executes the commands in these files after all the
      command options and arguments have been processed.  *Note Command
-     files: Command Files.
+     Files: Command Files.
 
 `-quiet'
 `-silent'
@@ -958,7 +963,7 @@ mode or quiet mode.
 
 File: gdb.info,  Node: Startup,  Prev: Mode Options,  Up: Invoking GDB
 
-2.1.3 What GDB does during startup
+2.1.3 What GDB Does During Startup
 ----------------------------------
 
 Here's the description of what GDB does during session startup:
@@ -990,28 +995,13 @@ Files::) and are processed by GDB in the same way.  The init file in
 your home directory can set options (such as `set complaints') that
 affect subsequent processing of command line options and operands.
 Init files are not executed if you use the `-nx' option (*note Choosing
-modes: Mode Options.).
+Modes: Mode Options.).
 
-   The GDB init files are normally called `.gdbinit'.  On some
-configurations of GDB, the init file is known by a different name
-(these are typically environments where a specialized form of GDB may
-need to coexist with other forms, hence a different name for the
-specialized version's init file).  These are the environments with
-special init file names:
-
-   * The DJGPP port of GDB uses the name `gdb.ini', due to the
-     limitations of file names imposed by DOS filesystems.  The Windows
-     ports of GDB use the standard name, but if they find a `gdb.ini'
-     file, they warn you about that and suggest to rename the file to
-     the standard name.
-
-   * VxWorks (Wind River Systems real-time OS): `.vxgdbinit'
-
-   * OS68K (Enea Data Systems real-time OS): `.os68gdbinit'
-
-   * ES-1800 (Ericsson Telecom AB M68000 emulator): `.esgdbinit'
-
-   * CISCO 68k: `.cisco-gdbinit'
+   The GDB init files are normally called `.gdbinit'.  The DJGPP port
+of GDB uses the name `gdb.ini', due to the limitations of file names
+imposed by DOS filesystems.  The Windows ports of GDB use the standard
+name, but if they find a `gdb.ini' file, they warn you about that and
+suggest to rename the file to the standard name.
 
    ---------- Footnotes ----------
 
@@ -1039,12 +1029,12 @@ until a time when it is safe.
 
    If you have been using GDB to control an attached process or device,
 you can release it with the `detach' command (*note Debugging an
-already-running process: Attach.).
+Already-running Process: Attach.).
 
 
-File: gdb.info,  Node: Shell Commands,  Next: Logging output,  Prev: Quitting GDB,  Up: Invocation
+File: gdb.info,  Node: Shell Commands,  Next: Logging Output,  Prev: Quitting GDB,  Up: Invocation
 
-2.3 Shell commands
+2.3 Shell Commands
 ==================
 
 If you need to execute occasional shell commands during your debugging
@@ -1065,9 +1055,9 @@ do not have to use the `shell' command for this purpose in GDB:
      equivalent to `shell make MAKE-ARGS'.
 
 
-File: gdb.info,  Node: Logging output,  Prev: Shell Commands,  Up: Invocation
+File: gdb.info,  Node: Logging Output,  Prev: Shell Commands,  Up: Invocation
 
-2.4 Logging output
+2.4 Logging Output
 ==================
 
 You may want to save the output of GDB commands to a file.  There are
@@ -1116,7 +1106,7 @@ alternatives available, if there is more than one possibility).
 
 File: gdb.info,  Node: Command Syntax,  Next: Completion,  Up: Commands
 
-3.1 Command syntax
+3.1 Command Syntax
 ==================
 
 A GDB command is a single line of input.  There is no limit on how long
@@ -1146,13 +1136,13 @@ construct new arguments rather than repeating exactly as typed.  This
 permits easy scanning of source or memory.
 
    GDB can also use <RET> in another way: to partition lengthy output,
-in a way similar to the common utility `more' (*note Screen size:
+in a way similar to the common utility `more' (*note Screen Size:
 Screen Size.).  Since it is easy to press one <RET> too many in this
 situation, GDB disables command repetition after any command that
 generates this sort of display.
 
    Any text from a `#' to the end of the line is a comment; it does
-nothing.  This is useful mainly in command files (*note Command files:
+nothing.  This is useful mainly in command files (*note Command Files:
 Command Files.).
 
    The `Ctrl-o' binding is useful for repeating a complex sequence of
@@ -1163,7 +1153,7 @@ editing.
 
 File: gdb.info,  Node: Completion,  Next: Help,  Prev: Command Syntax,  Up: Commands
 
-3.2 Command completion
+3.2 Command Completion
 ======================
 
 GDB can fill in the rest of a word in a command for you, if there is
@@ -1252,14 +1242,14 @@ have not yet started typing the argument list when you ask for
 completion on an overloaded symbol.
 
    For more information about overloaded functions, see *Note C++
-expressions: C plus plus expressions.  You can use the command `set
+Expressions: C Plus Plus Expressions.  You can use the command `set
 overload-resolution off' to disable overload resolution; see *Note GDB
-features for C++: Debugging C plus plus.
+Features for C++: Debugging C Plus Plus.
 
 
 File: gdb.info,  Node: Help,  Prev: Completion,  Up: Commands
 
-3.3 Getting help
+3.3 Getting Help
 ================
 
 You can always ask GDB itself for information on its commands, using
@@ -1284,8 +1274,7 @@ the command `help'.
           status -- Status inquiries
           support -- Support facilities
           tracepoints -- Tracing of program execution without
-
-          stopping the program
+                         stopping the program
           user-defined -- User-defined commands
 
           Type "help" followed by a class name for a list of
@@ -1306,9 +1295,9 @@ the command `help'.
           List of commands:
 
           info -- Generic command for showing things
-           about the program being debugged
+                  about the program being debugged
           show -- Generic command for showing things
-           about the debugger
+                  about the debugger
 
           Type "help" followed by command name for full
           documentation.
@@ -1329,9 +1318,9 @@ the command `help'.
      results in:
 
           set symbol-reloading -- Set dynamic symbol table reloading
-                                           multiple times in one run
+                                  multiple times in one run
           show symbol-reloading -- Show dynamic symbol table reloading
-                                           multiple times in one run
+                                  multiple times in one run
 
 `complete ARGS'
      The `complete ARGS' command lists all the possible completions for
@@ -1436,7 +1425,7 @@ child process.
 
 File: gdb.info,  Node: Compilation,  Next: Starting,  Up: Running
 
-4.1 Compiling for debugging
+4.1 Compiling for Debugging
 ===========================
 
 In order to debug a program effectively, you need to generate debugging
@@ -1490,7 +1479,7 @@ alone.
 
 File: gdb.info,  Node: Starting,  Next: Arguments,  Prev: Compilation,  Up: Running
 
-4.2 Starting your program
+4.2 Starting your Program
 =========================
 
 `run'
@@ -1499,7 +1488,7 @@ File: gdb.info,  Node: Starting,  Next: Arguments,  Prev: Compilation,  Up: Runn
      first specify the program name (except on VxWorks) with an
      argument to GDB (*note Getting In and Out of GDB: Invocation.), or
      by using the `file' or `exec-file' command (*note Commands to
-     specify files: Files.).
+     Specify Files: Files.).
 
 
    If you are running your program in an execution environment that
@@ -1521,25 +1510,25 @@ The _arguments._
      conventions (such as wildcard expansion or variable substitution)
      in describing the arguments.  In Unix systems, you can control
      which shell is used with the `SHELL' environment variable.  *Note
-     Your program's arguments: Arguments.
+     Your Program's Arguments: Arguments.
 
 The _environment._
      Your program normally inherits its environment from GDB, but you
      can use the GDB commands `set environment' and `unset environment'
      to change parts of the environment that affect your program.
-     *Note Your program's environment: Environment.
+     *Note Your Program's Environment: Environment.
 
 The _working directory._
      Your program inherits its working directory from GDB.  You can set
      the GDB working directory with the `cd' command in GDB.  *Note
-     Your program's working directory: Working Directory.
+     Your Program's Working Directory: Working Directory.
 
 The _standard input and output._
      Your program normally uses the same device for standard input and
      standard output as GDB is using.  You can redirect input and output
      in the `run' command line, or you can use the `tty' command to set
-     a different device for your program.  *Note Your program's input
-     and output: Input/Output.
+     a different device for your program.  *Note Your Program's Input
+     and Output: Input/Output.
 
      _Warning:_ While input and output redirection work, you cannot use
      pipes to pass the output of the program you are debugging to
@@ -1547,7 +1536,7 @@ The _standard input and output._
      debugging the wrong program.
 
    When you issue the `run' command, your program begins to execute
-immediately.  *Note Stopping and continuing: Stopping, for discussion
+immediately.  *Note Stopping and Continuing: Stopping, for discussion
 of how to arrange for your program to stop.  Once your program has
 stopped, you may call functions in your program, using the `print' or
 `call' commands.  *Note Examining Data: Data.
@@ -1593,7 +1582,7 @@ breakpoints.
 
 File: gdb.info,  Node: Arguments,  Next: Environment,  Prev: Starting,  Up: Running
 
-4.3 Your program's arguments
+4.3 Your Program's Arguments
 ============================
 
 The arguments to your program can be specified by the arguments of the
@@ -1624,7 +1613,7 @@ program, not by the shell.
 
 File: gdb.info,  Node: Environment,  Next: Working Directory,  Prev: Arguments,  Up: Running
 
-4.4 Your program's environment
+4.4 Your Program's Environment
 ==============================
 
 The "environment" consists of a set of environment variables and their
@@ -1693,7 +1682,7 @@ run when you sign on, such as `.login' or `.profile'.
 
 File: gdb.info,  Node: Working Directory,  Next: Input/Output,  Prev: Environment,  Up: Running
 
-4.5 Your program's working directory
+4.5 Your Program's Working Directory
 ====================================
 
 Each time you start your program with `run', it inherits its working
@@ -1703,8 +1692,8 @@ directory is initially whatever it inherited from its parent process
 GDB with the `cd' command.
 
    The GDB working directory also serves as a default for the commands
-that specify files for GDB to operate on.  *Note Commands to specify
-files: Files.
+that specify files for GDB to operate on.  *Note Commands to Specify
+Files: Files.
 
 `cd DIRECTORY'
      Set the GDB working directory to DIRECTORY.
@@ -1722,7 +1711,7 @@ debuggee.
 
 File: gdb.info,  Node: Input/Output,  Next: Attach,  Prev: Working Directory,  Up: Running
 
-4.6 Your program's input and output
+4.6 Your Program's Input and Output
 ===================================
 
 By default, the program you run under GDB does input and output to the
@@ -1776,7 +1765,7 @@ program.
 
 File: gdb.info,  Node: Attach,  Next: Kill Process,  Prev: Input/Output,  Up: Running
 
-4.7 Debugging an already-running process
+4.7 Debugging an Already-running Process
 ========================================
 
 `attach PROCESS-ID'
@@ -1797,7 +1786,7 @@ also have permission to send the process a signal.
    When you use `attach', the debugger finds the program running in the
 process first by looking in the current working directory, then (if the
 program is not found) by using the source file search path (*note
-Specifying source directories: Source Path.).  You can also use the
+Specifying Source Directories: Source Path.).  You can also use the
 `file' command to load the program.  *Note Commands to Specify Files:
 Files.
 
@@ -1818,16 +1807,17 @@ GDB to the process.
      `detach' does not repeat if you press <RET> again after executing
      the command.
 
-   If you exit GDB or use the `run' command while you have an attached
-process, you kill that process.  By default, GDB asks for confirmation
-if you try to do either of these things; you can control whether or not
-you need to confirm by using the `set confirm' command (*note Optional
-warnings and messages: Messages/Warnings.).
+   If you exit GDB while you have an attached process, you detach that
+process.  If you use the `run' command, you kill that process.  By
+default, GDB asks for confirmation if you try to do either of these
+things; you can control whether or not you need to confirm by using the
+`set confirm' command (*note Optional Warnings and Messages:
+Messages/Warnings.).
 
 
 File: gdb.info,  Node: Kill Process,  Next: Threads,  Prev: Attach,  Up: Running
 
-4.8 Killing the child process
+4.8 Killing the Child Process
 =============================
 
 `kill'
@@ -1852,7 +1842,7 @@ breakpoint settings).
 
 File: gdb.info,  Node: Threads,  Next: Processes,  Prev: Kill Process,  Up: Running
 
-4.9 Debugging programs with multiple threads
+4.9 Debugging Programs with Multiple Threads
 ============================================
 
 In some operating systems, such as HP-UX and Solaris, a single program
@@ -1896,10 +1886,10 @@ perspective of the current thread.
    Whenever GDB detects a new thread in your program, it displays the
 target system's identification for the thread with a message in the
 form `[New SYSTAG]'.  SYSTAG is a thread identifier whose form varies
-depending on the particular system.  For example, on LynxOS, you might
-see
+depending on the particular system.  For example, on GNU/Linux, you
+might see
 
-     [New process 35 thread 27]
+     [New Thread 46912507313328 (LWP 25582)]
 
 when GDB notices a new thread.  In contrast, on an SGI system, the
 SYSTAG is simply something like `process 368', with no further
@@ -2006,17 +1996,17 @@ automatically selects the thread where that breakpoint or signal
 happened.  GDB alerts you to the context switch with a message of the
 form `[Switching to SYSTAG]' to identify the thread.
 
-   *Note Stopping and starting multi-thread programs: Thread Stops, for
+   *Note Stopping and Starting Multi-thread Programs: Thread Stops, for
 more information about how GDB behaves when you stop and start programs
 with multiple threads.
 
-   *Note Setting watchpoints: Set Watchpoints, for information about
+   *Note Setting Watchpoints: Set Watchpoints, for information about
 watchpoints in programs with multiple threads.
 
 
 File: gdb.info,  Node: Processes,  Next: Checkpoint/Restart,  Prev: Threads,  Up: Running
 
-4.10 Debugging programs with multiple processes
+4.10 Debugging Programs with Multiple Processes
 ===============================================
 
 On most systems, GDB has no special support for debugging programs
@@ -2131,13 +2121,13 @@ the new target restarts.  To restart the parent process, use the `file'
 command with the parent executable name as its argument.
 
    You can use the `catch' command to make GDB stop whenever a `fork',
-`vfork', or `exec' call is made.  *Note Setting catchpoints: Set
+`vfork', or `exec' call is made.  *Note Setting Catchpoints: Set
 Catchpoints.
 
 
 File: gdb.info,  Node: Checkpoint/Restart,  Prev: Processes,  Up: Running
 
-4.11 Setting a _bookmark_ to return to later
+4.11 Setting a _Bookmark_ to Return to Later
 ============================================
 
 On certain operating systems(1), GDB is able to save a "snapshot" of a
@@ -2221,7 +2211,7 @@ be different from the program's original PID.  If your program has
 saved a local copy of its process id, this could potentially pose a
 problem.
 
-4.11.1 A non-obvious benefit of using checkpoints
+4.11.1 A Non-obvious Benefit of Using Checkpoints
 -------------------------------------------------
 
 On some systems such as GNU/Linux, address space randomization is
@@ -2272,14 +2262,14 @@ any time.
 
 File: gdb.info,  Node: Breakpoints,  Next: Continuing and Stepping,  Up: Stopping
 
-5.1 Breakpoints, watchpoints, and catchpoints
+5.1 Breakpoints, Watchpoints, and Catchpoints
 =============================================
 
 A "breakpoint" makes your program stop whenever a certain point in the
 program is reached.  For each breakpoint, you can add conditions to
 control in finer detail whether your program stops.  You can set
 breakpoints with the `break' command and its variants (*note Setting
-breakpoints: Set Breaks.), to specify the place where your program
+Breakpoints: Set Breaks.), to specify the place where your program
 should stop by line number, function name or exact address in the
 program.
 
@@ -2294,18 +2284,18 @@ the value of an expression changes.  The expression may be a value of a
 variable, or it could involve values of one or more variables combined
 by operators, such as `a + b'.  This is sometimes called "data
 breakpoints".  You must use a different command to set watchpoints
-(*note Setting watchpoints: Set Watchpoints.), but aside from that, you
+(*note Setting Watchpoints: Set Watchpoints.), but aside from that, you
 can manage a watchpoint like any other breakpoint: you enable, disable,
 and delete both breakpoints and watchpoints using the same commands.
 
    You can arrange to have values from your program displayed
 automatically whenever GDB stops at a breakpoint.  *Note Automatic
-display: Auto Display.
+Display: Auto Display.
 
    A "catchpoint" is another special breakpoint that stops your program
 when a certain kind of event occurs, such as the throwing of a C++
 exception or the loading of a library.  As with watchpoints, you use a
-different command to set a catchpoint (*note Setting catchpoints: Set
+different command to set a catchpoint (*note Setting Catchpoints: Set
 Catchpoints.), but aside from that, you can manage a catchpoint like any
 other breakpoint.  (To stop when your program receives a signal, use the
 `handle' command; see *Note Signals: Signals.)
@@ -2320,7 +2310,7 @@ disabled, it has no effect on your program until you enable it again.
    Some GDB commands accept a range of breakpoints on which to operate.
 A breakpoint range is either a single breakpoint number, like `5', or
 two such numbers, in increasing order, separated by a hyphen, like
-`5-7'.  When a breakpoint range is given to a command, all breakpoint
+`5-7'.  When a breakpoint range is given to a command, all breakpoints
 in that range are operated on.
 
 * Menu:
@@ -2334,17 +2324,17 @@ in that range are operated on.
 * Break Commands::              Breakpoint command lists
 * Breakpoint Menus::            Breakpoint menus
 * Error in Breakpoints::        ``Cannot insert breakpoints''
-* Breakpoint related warnings:: ``Breakpoint address adjusted...''
+* Breakpoint-related Warnings:: ``Breakpoint address adjusted...''
 
 
 File: gdb.info,  Node: Set Breaks,  Next: Set Watchpoints,  Up: Breakpoints
 
-5.1.1 Setting breakpoints
+5.1.1 Setting Breakpoints
 -------------------------
 
 Breakpoints are set with the `break' command (abbreviated `b').  The
 debugger convenience variable `$bpnum' records the number of the
-breakpoint you've set most recently; see *Note Convenience variables:
+breakpoint you've set most recently; see *Note Convenience Variables:
 Convenience Vars, for a discussion of what you can do with convenience
 variables.
 
@@ -2354,7 +2344,7 @@ variables.
      Set a breakpoint at entry to function FUNCTION.  When using source
      languages that permit overloading of symbols, such as C++,
      FUNCTION may refer to more than one possible place to break.
-     *Note Breakpoint menus: Breakpoint Menus, for a discussion of that
+     *Note Breakpoint Menus: Breakpoint Menus, for a discussion of that
      situation.
 
 `break +OFFSET'
@@ -2407,14 +2397,14 @@ variables.
      each time the breakpoint is reached, and stop only if the value is
      nonzero--that is, if COND evaluates as true.  `...' stands for one
      of the possible arguments described above (or no argument)
-     specifying where to break.  *Note Break conditions: Conditions,
+     specifying where to break.  *Note Break Conditions: Conditions,
      for more information on breakpoint conditions.
 
 `tbreak ARGS'
      Set a breakpoint enabled only for one stop.  ARGS are the same as
      for the `break' command, and the breakpoint is set in the same
      way, but the breakpoint is automatically deleted after the first
-     time your program stops there.  *Note Disabling breakpoints:
+     time your program stops there.  *Note Disabling Breakpoints:
      Disabling.
 
 `hbreak ARGS'
@@ -2432,9 +2422,9 @@ variables.
      only two data breakpoints can be set at a time, and GDB will
      reject this command if more than two are used.  Delete or disable
      unused hardware breakpoints before setting new ones (*note
-     Disabling: Disabling.).  *Note Break conditions: Conditions.  For
-     remote targets, you can restrict the number of hardware
-     breakpoints GDB will use, see *Note set remote
+     Disabling Breakpoints: Disabling.).  *Note Break Conditions:
+     Conditions.  For remote targets, you can restrict the number of
+     hardware breakpoints GDB will use, see *Note set remote
      hardware-breakpoint-limit::.
 
 `thbreak ARGS'
@@ -2444,8 +2434,8 @@ variables.
      breakpoint is automatically deleted after the first time your
      program stops there.  Also, like the `hbreak' command, the
      breakpoint requires hardware support and some target hardware may
-     not have this support.  *Note Disabling breakpoints: Disabling.
-     See also *Note Break conditions: Conditions.
+     not have this support.  *Note Disabling Breakpoints: Disabling.
+     See also *Note Break Conditions: Conditions.
 
 `rbreak REGEX'
      Set breakpoints on all functions matching the regular expression
@@ -2516,7 +2506,7 @@ variables.
      `info break' with a breakpoint number N as argument lists only
      that breakpoint.  The convenience variable `$_' and the default
      examining-address for the `x' command are set to the address of
-     the last breakpoint listed (*note Examining memory: Memory.).
+     the last breakpoint listed (*note Examining Memory: Memory.).
 
      `info break' displays a count of the number of times the breakpoint
      has been hit.  This is especially useful in conjunction with the
@@ -2529,7 +2519,7 @@ variables.
    GDB allows you to set any number of breakpoints at the same place in
 your program.  There is nothing silly or meaningless about this.  When
 the breakpoints are conditional, this is even useful (*note Break
-conditions: Conditions.).
+Conditions: Conditions.).
 
    If a specified breakpoint location cannot be found, it may be due to
 the fact that the location is in a shared library that is yet to be
@@ -2577,6 +2567,26 @@ This is done because any number of shared library loads could have
 occurred since the time the breakpoint was disabled and one or more of
 these loads could resolve the location.
 
+   For some targets, GDB can automatically decide if hardware or
+software breakpoints should be used, depending on whether the
+breakpoint address is read-only or read-write.  This applies to
+breakpoints set with the `break' command as well as to internal
+breakpoints set by commands like `next' and `finish'.  For breakpoints
+set with `hbreak', GDB will always use hardware breakpoints.
+
+   You can control this automatic behaviour with the following
+commands::
+
+`set breakpoint auto-hw on'
+     This is the default behavior.  When GDB sets a breakpoint, it will
+     try to use the target memory map to decide if software or hardware
+     breakpoint must be used.
+
+`set breakpoint auto-hw off'
+     This indicates GDB should not automatically select breakpoint
+     type.  If the target provides a memory map, GDB will warn when
+     trying to set software breakpoint at a read-only address.
+
    GDB itself sometimes sets breakpoints in your program for special
 purposes, such as proper handling of `longjmp' (in C programs).  These
 internal breakpoints are assigned negative numbers, starting with `-1';
@@ -2587,7 +2597,7 @@ breakpoints with the GDB maintenance command `maint info breakpoints'
 
 File: gdb.info,  Node: Set Watchpoints,  Next: Set Catchpoints,  Prev: Set Breaks,  Up: Breakpoints
 
-5.1.2 Setting watchpoints
+5.1.2 Setting Watchpoints
 -------------------------
 
 You can use a watchpoint to stop execution whenever the value of an
@@ -2649,7 +2659,7 @@ can-use-hw-watchpoints 0' command.  With this variable set to zero, GDB
 will never try to use hardware watchpoints, even if the underlying
 system supports them.  (Note that hardware-assisted watchpoints that
 were set _before_ setting `can-use-hw-watchpoints' to zero will still
-use the hardware mechanism of watching expressiion values.)
+use the hardware mechanism of watching expression values.)
 
 `set can-use-hw-watchpoints'
      Set whether or not to use hardware watchpoints.
@@ -2752,7 +2762,7 @@ function and when it breaks, set all the watchpoints.
 
 File: gdb.info,  Node: Set Catchpoints,  Next: Delete Breaks,  Prev: Set Watchpoints,  Up: Breakpoints
 
-5.1.3 Setting catchpoints
+5.1.3 Setting Catchpoints
 -------------------------
 
 You can use "catchpoints" to cause the debugger to stop for certain
@@ -2766,6 +2776,20 @@ shared library.  Use the `catch' command to set a catchpoint.
 
     `catch'
           The catching of a C++ exception.
+
+    `exception'
+          An Ada exception being raised.  If an exception name is
+          specified at the end of the command (eg `catch exception
+          Program_Error'), the debugger will stop only when this
+          specific exception is raised.  Otherwise, the debugger stops
+          execution when any Ada exception is raised.
+
+    `exception unhandled'
+          An exception that was raised but is not handled by the
+          program.
+
+    `assert'
+          A failed Ada assertion.
 
     `exec'
           A call to `exec'.  This is currently only available for HP-UX.
@@ -2831,9 +2855,9 @@ has the following ANSI C interface:
 
 To make the debugger catch all exceptions before any stack unwinding
 takes place, set a breakpoint on `__raise_exception' (*note
-Breakpoints; watchpoints; and exceptions: Breakpoints.).
+Breakpoints; Watchpoints; and Exceptions: Breakpoints.).
 
-   With a conditional breakpoint (*note Break conditions: Conditions.)
+   With a conditional breakpoint (*note Break Conditions: Conditions.)
 that depends on the value of ID, you can stop your program when a
 specific exception is raised.  You can use multiple conditional
 breakpoints to stop your program when any of a number of exceptions are
@@ -2842,7 +2866,7 @@ raised.
 
 File: gdb.info,  Node: Delete Breaks,  Next: Disabling,  Prev: Set Catchpoints,  Up: Breakpoints
 
-5.1.4 Deleting breakpoints
+5.1.4 Deleting Breakpoints
 --------------------------
 
 It is often necessary to eliminate a breakpoint, watchpoint, or
@@ -2862,7 +2886,7 @@ address.
 
 `clear'
      Delete any breakpoints at the next instruction to be executed in
-     the selected stack frame (*note Selecting a frame: Selection.).
+     the selected stack frame (*note Selecting a Frame: Selection.).
      When the innermost frame is selected, this is a good way to delete
      a breakpoint where your program just stopped.
 
@@ -2885,7 +2909,7 @@ address.
 
 File: gdb.info,  Node: Disabling,  Next: Conditions,  Prev: Delete Breaks,  Up: Breakpoints
 
-5.1.5 Disabling breakpoints
+5.1.5 Disabling Breakpoints
 ---------------------------
 
 Rather than deleting a breakpoint, watchpoint, or catchpoint, you might
@@ -2939,17 +2963,17 @@ watchpoints, and catchpoints:
      state.
 
    Except for a breakpoint set with `tbreak' (*note Setting
-breakpoints: Set Breaks.), breakpoints that you set are initially
+Breakpoints: Set Breaks.), breakpoints that you set are initially
 enabled; subsequently, they become disabled or enabled only when you
 use one of the commands above.  (The command `until' can set and delete
 a breakpoint of its own, but it does not change the state of your other
-breakpoints; see *Note Continuing and stepping: Continuing and
+breakpoints; see *Note Continuing and Stepping: Continuing and
 Stepping.)
 
 
 File: gdb.info,  Node: Conditions,  Next: Break Commands,  Prev: Disabling,  Up: Breakpoints
 
-5.1.6 Break conditions
+5.1.6 Break Conditions
 ----------------------
 
 The simplest sort of breakpoint breaks every time your program reaches a
@@ -2980,11 +3004,11 @@ case, GDB might see the other breakpoint first and stop your program
 without checking the condition of this one.)  Note that breakpoint
 commands are usually more convenient and flexible than break conditions
 for the purpose of performing side effects when a breakpoint is reached
-(*note Breakpoint command lists: Break Commands.).
+(*note Breakpoint Command Lists: Break Commands.).
 
    Break conditions can be specified when a breakpoint is set, by using
 `if' in the arguments to the `break' command.  *Note Setting
-breakpoints: Set Breaks.  They can also be changed at any time with the
+Breakpoints: Set Breaks.  They can also be changed at any time with the
 `condition' command.
 
    You can also use the `if' keyword with the `watch' command.  The
@@ -3035,7 +3059,7 @@ it.
      When you use `continue' to resume execution of your program from a
      breakpoint, you can specify an ignore count directly as an
      argument to `continue', rather than using `ignore'.  *Note
-     Continuing and stepping: Continuing and Stepping.
+     Continuing and Stepping: Continuing and Stepping.
 
      If a breakpoint has a positive ignore count and a condition, the
      condition is not checked.  Once the ignore count reaches zero, GDB
@@ -3043,7 +3067,7 @@ it.
 
      You could achieve the effect of the ignore count with a condition
      such as `$foo-- <= 0' using a debugger convenience variable that
-     is decremented each time.  *Note Convenience variables:
+     is decremented each time.  *Note Convenience Variables:
      Convenience Vars.
 
    Ignore counts apply to breakpoints, watchpoints, and catchpoints.
@@ -3051,7 +3075,7 @@ it.
 
 File: gdb.info,  Node: Break Commands,  Next: Breakpoint Menus,  Prev: Conditions,  Up: Breakpoints
 
-5.1.7 Breakpoint command lists
+5.1.7 Breakpoint Command Lists
 ------------------------------
 
 You can give any breakpoint (or watchpoint or catchpoint) a series of
@@ -3095,7 +3119,7 @@ only at the beginning of a breakpoint command list.
 
    The commands `echo', `output', and `printf' allow you to print
 precisely controlled output, and are often useful in silent
-breakpoints.  *Note Commands for controlled output: Output.
+breakpoints.  *Note Commands for Controlled Output: Output.
 
    For example, here is how you could use breakpoint commands to print
 the value of `x' at entry to `foo' whenever `x' is positive.
@@ -3125,7 +3149,7 @@ that no output is produced.  Here is an example:
 
 File: gdb.info,  Node: Breakpoint Menus,  Next: Error in Breakpoints,  Prev: Break Commands,  Up: Breakpoints
 
-5.1.8 Breakpoint menus
+5.1.8 Breakpoint Menus
 ----------------------
 
 Some programming languages (notably C++ and Objective-C) permit a
@@ -3164,7 +3188,7 @@ particular definitions of that function name:
      (gdb)
 
 
-File: gdb.info,  Node: Error in Breakpoints,  Next: Breakpoint related warnings,  Prev: Breakpoint Menus,  Up: Breakpoints
+File: gdb.info,  Node: Error in Breakpoints,  Next: Breakpoint-related Warnings,  Prev: Breakpoint Menus,  Up: Breakpoints
 
 5.1.9 "Cannot insert breakpoints"
 ---------------------------------
@@ -3204,7 +3228,7 @@ watchpoints it needs to insert.
 the hardware-assisted breakpoints and watchpoints, and then continue.
 
 
-File: gdb.info,  Node: Breakpoint related warnings,  Prev: Error in Breakpoints,  Up: Breakpoints
+File: gdb.info,  Node: Breakpoint-related Warnings,  Prev: Error in Breakpoints,  Up: Breakpoints
 
 5.1.10 "Breakpoint address adjusted..."
 ---------------------------------------
@@ -3257,7 +3281,7 @@ frequently than expected.
 
 File: gdb.info,  Node: Continuing and Stepping,  Next: Signals,  Prev: Breakpoints,  Up: Stopping
 
-5.2 Continuing and stepping
+5.2 Continuing and Stepping
 ===========================
 
 "Continuing" means resuming program execution until your program
@@ -3276,7 +3300,7 @@ to resume execution.  *Note Signals: Signals.)
      stopped; any breakpoints set at that address are bypassed.  The
      optional argument IGNORE-COUNT allows you to specify a further
      number of times to ignore a breakpoint at this location; its
-     effect is like that of `ignore' (*note Break conditions:
+     effect is like that of `ignore' (*note Break Conditions:
      Conditions.).
 
      The argument IGNORE-COUNT is meaningful only when your program
@@ -3289,12 +3313,12 @@ to resume execution.  *Note Signals: Signals.)
      `continue'.
 
    To resume execution at a different place, you can use `return'
-(*note Returning from a function: Returning.) to go back to the calling
-function; or `jump' (*note Continuing at a different address: Jumping.)
+(*note Returning from a Function: Returning.) to go back to the calling
+function; or `jump' (*note Continuing at a Different Address: Jumping.)
 to go to an arbitrary location in your program.
 
    A typical technique for using stepping is to set a breakpoint (*note
-Breakpoints; watchpoints; and catchpoints: Breakpoints.) at the
+Breakpoints; Watchpoints; and Catchpoints: Breakpoints.) at the
 beginning of the function or the section of your program where a problem
 is believed to lie, run your program until it stops at that breakpoint,
 and then step through the suspect area, examining the variables that are
@@ -3369,7 +3393,7 @@ interesting, until you see the problem happen.
      frame returns.  Print the returned value (if any).
 
      Contrast this with the `return' command (*note Returning from a
-     function: Returning.).
+     Function: Returning.).
 
 `until'
 `u'
@@ -3417,14 +3441,14 @@ interesting, until you see the problem happen.
      Continue running your program until either the specified location
      is reached, or the current stack frame returns.  LOCATION is any of
      the forms of argument acceptable to `break' (*note Setting
-     breakpoints: Set Breaks.).  This form of the command uses
+     Breakpoints: Set Breaks.).  This form of the command uses
      breakpoints, and hence is quicker than `until' without an
      argument.  The specified location is actually reached only if it
      is in the current frame.  This implies that `until' can be used to
      skip over recursive function invocations.  For instance in the
      code below, if the current location is line `96', issuing `until
      99' will execute the program up to line `99' in the same
-     invocation of factorial, i.e. after the inner invocations have
+     invocation of factorial, i.e., after the inner invocations have
      returned.
 
           94	int factorial (int value)
@@ -3453,7 +3477,7 @@ interesting, until you see the problem happen.
      It is often useful to do `display/i $pc' when stepping by machine
      instructions.  This makes GDB automatically display the next
      instruction to be executed, each time your program stops.  *Note
-     Automatic display: Auto Display.
+     Automatic Display: Auto Display.
 
      An argument is a repeat count, as in `step'.
 
@@ -3564,17 +3588,17 @@ stopped due to some sort of memory reference error, you might store
 correct values into the erroneous variables and continue, hoping to see
 more execution; but your program would probably terminate immediately as
 a result of the fatal signal once it saw the signal.  To prevent this,
-you can continue with `signal 0'.  *Note Giving your program a signal:
+you can continue with `signal 0'.  *Note Giving your Program a Signal:
 Signaling.
 
 
 File: gdb.info,  Node: Thread Stops,  Prev: Signals,  Up: Stopping
 
-5.4 Stopping and starting multi-thread programs
+5.4 Stopping and Starting Multi-thread Programs
 ===============================================
 
-When your program has multiple threads (*note Debugging programs with
-multiple threads: Threads.), you can choose whether to set breakpoints
+When your program has multiple threads (*note Debugging Programs with
+Multiple Threads: Threads.), you can choose whether to set breakpoints
 on all threads, or on a particular thread.
 
 `break LINESPEC thread THREADNO'
@@ -3695,12 +3719,12 @@ allow you to see all of this information.
 refer implicitly to the selected frame.  In particular, whenever you
 ask GDB for the value of a variable in your program, the value is found
 in the selected frame.  There are special GDB commands to select
-whichever frame you are interested in. *Note Selecting a frame:
+whichever frame you are interested in.  *Note Selecting a Frame:
 Selection.
 
    When your program stops, GDB automatically selects the currently
 executing frame and describes it briefly, similar to the `frame'
-command (*note Information about a frame: Frame Info.).
+command (*note Information about a Frame: Frame Info.).
 
 * Menu:
 
@@ -3712,7 +3736,7 @@ command (*note Information about a frame: Frame Info.).
 
 File: gdb.info,  Node: Frames,  Next: Backtrace,  Up: Stack
 
-6.1 Stack frames
+6.1 Stack Frames
 ================
 
 The call stack is divided up into contiguous pieces called "stack
@@ -3744,7 +3768,7 @@ assigned by GDB to give you a way of designating stack frames in GDB
 commands.
 
    Some compilers provide a way to compile functions so that they
-operate without stack frames.  (For example, the gcc option
+operate without stack frames.  (For example, the GCC option
      `-fomit-frame-pointer'
    generates functions without a frame.)  This is occasionally done
 with heavily used library functions to save the frame setup time.  GDB
@@ -3880,7 +3904,7 @@ levels in a backtrace, you can change this behavior:
      `main' (or equivalent) is called.
 
 `set backtrace past-entry off'
-     Backtraces will stop when they encouter the internal entry point
+     Backtraces will stop when they encounter the internal entry point
      of an application.  This is the default.
 
 `show backtrace past-entry'
@@ -3902,7 +3926,7 @@ point.  They could even have multiple entry points.
 
 File: gdb.info,  Node: Selection,  Next: Frame Info,  Prev: Backtrace,  Up: Stack
 
-6.3 Selecting a frame
+6.3 Selecting a Frame
 =====================
 
 Most commands for examining the stack and other data in your program
@@ -3960,7 +3984,7 @@ frame.  The second line shows the text of that source line.
    After such a printout, the `list' command with no arguments prints
 ten lines centered on the point of execution in the frame.  You can
 also edit the program at the point of execution with your favorite
-editing program by typing `edit'.  *Note Printing source lines: List,
+editing program by typing `edit'.  *Note Printing Source Lines: List,
 for details.
 
 `up-silently N'
@@ -3974,7 +3998,7 @@ for details.
 
 File: gdb.info,  Node: Frame Info,  Prev: Selection,  Up: Stack
 
-6.4 Information about a frame
+6.4 Information About a Frame
 =============================
 
 There are several other commands to print information about the selected
@@ -3986,7 +4010,7 @@ stack frame.
      frame is selected, but prints a brief description of the currently
      selected stack frame.  It can be abbreviated `f'.  With an
      argument, this command is used to select a stack frame.  *Note
-     Selecting a frame: Selection.
+     Selecting a Frame: Selection.
 
 `info frame'
 `info f'
@@ -4020,7 +4044,7 @@ stack frame.
      selecting that frame.  The selected frame remains unchanged by this
      command.  This requires the same kind of address (more than one
      for some architectures) that you specify in the `frame' command.
-     *Note Selecting a frame: Selection.
+     *Note Selecting a Frame: Selection.
 
 `info args'
      Print the arguments of the selected frame, each on a separate line.
@@ -4036,7 +4060,7 @@ stack frame.
      current stack frame at the current point of execution.  To see
      other exception handlers, visit the associated frame (using the
      `up', `down', or `frame' commands); then type `info catch'.  *Note
-     Setting catchpoints: Set Catchpoints.
+     Setting Catchpoints: Set Catchpoints.
 
 
 
@@ -4049,7 +4073,7 @@ GDB can print parts of your program's source, since the debugging
 information recorded in the program tells GDB what source files were
 used to build it.  When your program stops, GDB spontaneously prints
 the line where it stopped.  Likewise, when you select a stack frame
-(*note Selecting a frame: Selection.), GDB prints the line where
+(*note Selecting a Frame: Selection.), GDB prints the line where
 execution in that frame has stopped.  You can print other portions of
 source files by explicit command.
 
@@ -4068,7 +4092,7 @@ Emacs: Emacs.
 
 File: gdb.info,  Node: List,  Next: Edit,  Up: Source
 
-7.1 Printing source lines
+7.1 Printing Source Lines
 =========================
 
 To print lines from a source file, use the `list' command (abbreviated
@@ -4172,7 +4196,7 @@ of linespec.
 
 File: gdb.info,  Node: Edit,  Next: Search,  Prev: List,  Up: Source
 
-7.2 Editing source files
+7.2 Editing Source Files
 ========================
 
 To edit the lines in a source file, use the `edit' command.  The
@@ -4207,7 +4231,7 @@ other parts of the program.
      Specifies the line containing the program address ADDRESS.
      ADDRESS may be any expression.
 
-7.2.1 Choosing your editor
+7.2.1 Choosing your Editor
 --------------------------
 
 You can customize GDB to use any editor you want (1).  By default, it
@@ -4232,7 +4256,7 @@ in the file where to start editing.
 
 File: gdb.info,  Node: Search,  Next: Source Path,  Prev: Edit,  Up: Source
 
-7.3 Searching source files
+7.3 Searching Source Files
 ==========================
 
 There are two commands for searching through the current source file
@@ -4254,7 +4278,7 @@ for a regular expression.
 
 File: gdb.info,  Node: Source Path,  Next: Machine Code,  Prev: Search,  Up: Source
 
-7.4 Specifying source directories
+7.4 Specifying Source Directories
 =================================
 
 Executable programs sometimes do not record the directories of the
@@ -4320,7 +4344,7 @@ set substitute-path::).
 the FROM part of the directory name ends at a directory separator.  For
 instance, a rule substituting  `/usr/source' into `/mnt/cross' will be
 applied to `/usr/source/foo-1.0' but not to `/usr/sourceware/foo-2.0'.
-And because the substitution is applied only at the begining of the
+And because the substitution is applied only at the beginning of the
 directory name, this rule will not be applied to
 `/root/usr/source/baz.c' either.
 
@@ -4423,7 +4447,7 @@ versions of source.  You can correct the situation as follows:
 
 File: gdb.info,  Node: Machine Code,  Prev: Source Path,  Up: Source
 
-7.5 Source and machine code
+7.5 Source and Machine Code
 ===========================
 
 You can use the command `info line' to map source lines to program
@@ -4436,8 +4460,8 @@ as hex.
 `info line LINESPEC'
      Print the starting and ending addresses of the compiled code for
      source line LINESPEC.  You can specify source lines in any of the
-     ways understood by the `list' command (*note Printing source
-     lines: List.).
+     ways understood by the `list' command (*note Printing Source
+     Lines: List.).
 
    For example, we can use `info line' to discover the location of the
 object code for the first line of function `m4_changequote':
@@ -4452,9 +4476,9 @@ source line covers a particular address:
 
    After `info line', the default address for the `x' command is
 changed to the starting address of the line, so that `x/i' is
-sufficient to begin examining the machine code (*note Examining memory:
+sufficient to begin examining the machine code (*note Examining Memory:
 Memory.).  Also, this address is saved as the value of the convenience
-variable `$_' (*note Convenience variables: Convenience Vars.).
+variable `$_' (*note Convenience Variables: Convenience Vars.).
 
 `disassemble'
      This specialized command dumps a range of memory as machine
@@ -4516,19 +4540,19 @@ written in (*note Using GDB with Different Languages: Languages.).
      EXPR is an expression (in the source language).  By default the
      value of EXPR is printed in a format appropriate to its data type;
      you can choose a different format by specifying `/F', where F is a
-     letter specifying the format; see *Note Output formats: Output
+     letter specifying the format; see *Note Output Formats: Output
      Formats.
 
 `print'
 `print /F'
      If you omit EXPR, GDB displays the last value again (from the
-     "value history"; *note Value history: Value History.).  This
+     "value history"; *note Value History: Value History.).  This
      allows you to conveniently inspect the same value in an
      alternative format.
 
    A more low-level way of examining data is with the `x' command.  It
 examines data in memory at a specified address and prints it in a
-specified format.  *Note Examining memory: Memory.
+specified format.  *Note Examining Memory: Memory.
 
    If you are interested in information about types, or about how the
 fields of a struct or a class are declared, use the `ptype EXP' command
@@ -4592,11 +4616,11 @@ programming languages:
 
 `@'
      `@' is a binary operator for treating parts of memory as arrays.
-     *Note Artificial arrays: Arrays, for more information.
+     *Note Artificial Arrays: Arrays, for more information.
 
 `::'
      `::' allows you to specify a variable in terms of the file or
-     function where it is defined.  *Note Program variables: Variables.
+     function where it is defined.  *Note Program Variables: Variables.
 
 `{TYPE} ADDR'
      Refers to an object of type TYPE stored at address ADDR in memory.
@@ -4608,14 +4632,14 @@ programming languages:
 
 File: gdb.info,  Node: Variables,  Next: Arrays,  Prev: Expressions,  Up: Data
 
-8.2 Program variables
+8.2 Program Variables
 =====================
 
 The most common kind of expression to use is the name of a variable in
 your program.
 
    Variables in expressions are understood in the selected stack frame
-(*note Selecting a frame: Selection.); they must be either:
+(*note Selecting a Frame: Selection.); they must be either:
 
    * global (or file-static)
 
@@ -4694,19 +4718,34 @@ formats.  For example, GCC, the GNU C/C++ compiler, usually supports
 the `-gstabs+' option.  `-gstabs+' produces debug info in a format that
 is superior to formats such as COFF.  You may be able to use DWARF 2
 (`-gdwarf-2'), which is also an effective form for debug info.  *Note
-Options for Debugging Your Program or GNU CC: (gcc.info)Debugging
-Options.  *Note Debugging C++: C, for more info about debug info formats
-that are best suited to C++ programs.
+Options for Debugging Your Program or GCC: (gcc.info)Debugging Options.
+*Note C and C++: C, for more information about debug info formats that
+are best suited to C++ programs.
 
    If you ask to print an object whose contents are unknown to GDB,
 e.g., because its data type is not completely specified by the debug
 information, GDB will say `<incomplete type>'.  *Note incomplete type:
 Symbols, for more about this.
 
+   Strings are identified as arrays of `char' values without specified
+signedness.  Arrays of either `signed char' or `unsigned char' get
+printed as arrays of 1 byte sized integers.  `-fsigned-char' or
+`-funsigned-char' GCC options have no effect as GDB defines literal
+string type `"char"' as `char' without a sign.  For program code
+
+     char var0[] = "A";
+     signed char var1[] = "A";
+
+   You get during debugging
+     (gdb) print var0
+     $1 = "A"
+     (gdb) print var1
+     $2 = {65 'A', 0 '\0'}
+
 
 File: gdb.info,  Node: Arrays,  Next: Output Formats,  Prev: Variables,  Up: Data
 
-8.3 Artificial arrays
+8.3 Artificial Arrays
 =====================
 
 It is often useful to print out several successive objects of the same
@@ -4733,7 +4772,7 @@ you can print the contents of `array' with
 with `@' in this way behave just like other arrays in terms of
 subscripting, and are coerced to pointers when used in expressions.
 Artificial arrays most often appear in expressions via the value history
-(*note Value history: Value History.), after printing one out.
+(*note Value History: Value History.), after printing one out.
 
    Another way to create an artificial array is to use a cast.  This
 re-interprets a value as if it were an array.  The value need not be in
@@ -4751,7 +4790,7 @@ memory:
 moderately complex data structures, the elements of interest may not
 actually be adjacent--for example, if you are interested in the values
 of pointers in an array.  One useful work-around in this situation is
-to use a convenience variable (*note Convenience variables: Convenience
+to use a convenience variable (*note Convenience Variables: Convenience
 Vars.) as a counter in an expression that prints the first interesting
 value, and then repeat that expression via <RET>.  For instance,
 suppose you have an array `dtab' of pointers to structures, and you are
@@ -4767,7 +4806,7 @@ example of what you might type:
 
 File: gdb.info,  Node: Output Formats,  Next: Memory,  Prev: Arrays,  Up: Data
 
-8.4 Output formats
+8.4 Output Formats
 ==================
 
 By default, GDB prints a value according to its data type.  Sometimes
@@ -4815,9 +4854,23 @@ supported are:
      The character representation is replaced with the octal escape
      `\nnn' for characters outside the 7-bit ASCII range.
 
+     Without this format, GDB displays `char', `unsigned char', and
+     `signed char' data as character constants.  Single-byte members of
+     vectors are displayed as integer data.
+
 `f'
      Regard the bits of the value as a floating point number and print
      using typical floating point syntax.
+
+`s'
+     Regard as a string, if possible.  With this format, pointers to
+     single-byte data are displayed as null-terminated strings and
+     arrays of single-byte data are displayed as fixed-length strings.
+     Other values are displayed in their natural types.
+
+     Without this format, GDB displays pointers to and arrays of
+     `char', `unsigned char', and `signed char' as strings.
+     Single-byte members of a vector are displayed as an integer array.
 
    For example, to print the program counter in hex (*note
 Registers::), type
@@ -4835,12 +4888,12 @@ expression.  For example, `p/x' reprints the last value in hex.
 
    (1) `b' cannot be used because these format letters are also used
 with the `x' command, where `b' stands for "byte"; see *Note Examining
-memory: Memory.
+Memory: Memory.
 
 
 File: gdb.info,  Node: Memory,  Next: Auto Display,  Prev: Output Formats,  Up: Data
 
-8.5 Examining memory
+8.5 Examining Memory
 ====================
 
 You can use the command `x' (for "examine") to examine memory in any of
@@ -4863,10 +4916,10 @@ N, the repeat count
 
 F, the display format
      The display format is one of the formats used by `print' (`x',
-     `d', `u', `o', `t', `a', `c', `f'), and in addition `s' (for
-     null-terminated strings) and `i' (for machine instructions).  The
-     default is `x' (hexadecimal) initially.  The default changes each
-     time you use either `x' or `print'.
+     `d', `u', `o', `t', `a', `c', `f', `s'), and in addition `i' (for
+     machine instructions).  The default is `x' (hexadecimal)
+     initially.  The default changes each time you use either `x' or
+     `print'.
 
 U, the unit size
      The unit size is any of
@@ -4913,8 +4966,12 @@ the count N must come first; `wx4' does not work.)
    Even though the unit size U is ignored for the formats `s' and `i',
 you might still want to use a count N; for example, `3i' specifies that
 you want to see three machine instructions, including any operands.
-The command `disassemble' gives an alternative way of inspecting
-machine instructions; see *Note Source and machine code: Machine Code.
+For convenience, especially when used with the `display' command, the
+`i' format also prints branch delay slot instructions, if any, beyond
+the count specified, which immediately follow the last instruction that
+is within the count.  The command `disassemble' gives an alternative
+way of inspecting machine instructions; see *Note Source and Machine
+Code: Machine Code.
 
    All the defaults for the arguments to `x' are designed to make it
 easy to continue scanning memory with minimal specifications each time
@@ -4939,10 +4996,10 @@ address printed if several units were printed on the last line of
 output.
 
    When you are debugging a program running on a remote target machine
-(*note Remote::), you may wish to verify the program's image in the
-remote machine's memory against the executable file you downloaded to
-the target.  The `compare-sections' command is provided for such
-situations.
+(*note Remote Debugging::), you may wish to verify the program's image
+in the remote machine's memory against the executable file you
+downloaded to the target.  The `compare-sections' command is provided
+for such situations.
 
 `compare-sections [SECTION-NAME]'
      Compare the data of a loadable section SECTION-NAME in the
@@ -4955,7 +5012,7 @@ situations.
 
 File: gdb.info,  Node: Auto Display,  Next: Print Settings,  Prev: Memory,  Up: Data
 
-8.6 Automatic display
+8.6 Automatic Display
 =====================
 
 If you find that you want to print the value of an expression frequently
@@ -4971,10 +5028,9 @@ automatic display looks like this:
 This display shows item numbers, expressions and their current values.
 As with displays you request manually using `x' or `print', you can
 specify the output format you prefer; in fact, `display' decides
-whether to use `print' or `x' depending on how elaborate your format
-specification is--it uses `x' if you specify a unit size, or one of the
-two formats (`i' and `s') that are only supported by `x'; otherwise it
-uses `print'.
+whether to use `print' or `x' depending your format specification--it
+uses `x' if you specify either the `i' or `s' format, or a unit size;
+otherwise it uses `print'.
 
 `display EXPR'
      Add the expression EXPR to the list of expressions to display each
@@ -4986,13 +5042,13 @@ uses `print'.
      For FMT specifying only a display format and not a size or count,
      add the expression EXPR to the auto-display list but arrange to
      display it each time in the specified format FMT.  *Note Output
-     formats: Output Formats.
+     Formats: Output Formats.
 
 `display/FMT ADDR'
      For FMT `i' or `s', or including a unit-size or a number of units,
      add the expression ADDR as a memory address to be examined each
      time your program stops.  Examining means in effect doing `x/FMT
-     ADDR'.  *Note Examining memory: Memory.
+     ADDR'.  *Note Examining Memory: Memory.
 
    For example, `display/i $pc' can be helpful, to see the machine
 instruction about to be executed each time execution stops (`$pc' is a
@@ -5041,7 +5097,7 @@ the display expression once again.
 
 File: gdb.info,  Node: Print Settings,  Next: Value History,  Prev: Auto Display,  Up: Data
 
-8.7 Print settings
+8.7 Print Settings
 ==================
 
 GDB provides the following ways to control how arrays, structures, and
@@ -5174,7 +5230,7 @@ shows that a variable `ptt' points at another variable `t', defined in
 
 `set print repeats'
      Set the threshold for suppressing display of repeated array
-     elelments.  When the number of consecutive identical elements of an
+     elements.  When the number of consecutive identical elements of an
      array exceeds the threshold, GDB prints the string `"<repeats N
      times>"', where N is the number of identical repetitions, instead
      of displaying the identical elements themselves.  Setting the
@@ -5375,7 +5431,7 @@ These settings are of interest when debugging C++ programs:
 
 File: gdb.info,  Node: Value History,  Next: Convenience Vars,  Prev: Print Settings,  Up: Data
 
-8.8 Value history
+8.8 Value History
 =================
 
 Values printed by the `print' command are saved in the GDB "value
@@ -5437,7 +5493,7 @@ as `show values +'.
 
 File: gdb.info,  Node: Convenience Vars,  Next: Registers,  Prev: Value History,  Up: Data
 
-8.9 Convenience variables
+8.9 Convenience Variables
 =========================
 
 GDB provides "convenience variables" that you can use within GDB to
@@ -5450,7 +5506,7 @@ program.  That is why you can use them freely.
 `$' can be used for a convenience variable, unless it is one of the
 predefined machine-specific register names (*note Registers:
 Registers.).  (Value history references, in contrast, are _numbers_
-preceded by `$'.  *Note Value history: Value History.)
+preceded by `$'.  *Note Value History: Value History.)
 
    You can save a value in a convenience variable with an assignment
 expression, just as you would set a variable in your program.  For
@@ -5500,7 +5556,7 @@ values likely to be useful.
 
 `$_'
      The variable `$_' is automatically set by the `x' command to the
-     last address examined (*note Examining memory: Memory.).  Other
+     last address examined (*note Examining Memory: Memory.).  Other
      commands which provide a default address for `x' to examine also
      set `$_' to that address; these commands include `info line' and
      `info breakpoint'.  The type of `$_' is `void *' except when set
@@ -5615,7 +5671,7 @@ register you wish to change, as if you were assigning value to a
       (gdb) set $xmm1.uint128 = 0x000000000000000000000000FFFFFFFF
 
    Normally, register values are relative to the selected stack frame
-(*note Selecting a frame: Selection.).  This means that you get the
+(*note Selecting a Frame: Selection.).  This means that you get the
 value that the register would contain if all stack frames farther in
 were exited and their saved registers restored.  In order to see the
 true contents of hardware registers, you must select the innermost
@@ -5633,12 +5689,12 @@ where stacks grow downward in memory (most machines, nowadays).  This
 assumes that the innermost stack frame is selected; setting `$sp' is
 not allowed when other stack frames are selected.  To pop entire frames
 off the stack, regardless of machine architecture, use `return'; see
-*Note Returning from a function: Returning.
+*Note Returning from a Function: Returning.
 
 
 File: gdb.info,  Node: Floating Point Hardware,  Next: Vector Unit,  Prev: Registers,  Up: Data
 
-8.11 Floating point hardware
+8.11 Floating Point Hardware
 ============================
 
 Depending on the configuration, GDB may be able to give you more
@@ -5666,7 +5722,7 @@ information about the status of the vector unit.
 
 File: gdb.info,  Node: OS Information,  Next: Memory Region Attributes,  Prev: Vector Unit,  Up: Data
 
-8.13 Operating system auxiliary information
+8.13 Operating System Auxiliary Information
 ===========================================
 
 GDB provides interfaces to useful OS facilities that can help you debug
@@ -5708,7 +5764,7 @@ vector read::.
 
 File: gdb.info,  Node: Memory Region Attributes,  Next: Dump/Restore Files,  Prev: OS Information,  Up: Data
 
-8.14 Memory region attributes
+8.14 Memory Region Attributes
 =============================
 
 "Memory region attributes" allow you to describe special handling
@@ -5730,7 +5786,7 @@ to enable, disable, or remove a memory region, you specify that number.
 `mem LOWER UPPER ATTRIBUTES...'
      Define a memory region bounded by LOWER and UPPER with attributes
      ATTRIBUTES..., and add it to the list of regions monitored by GDB.
-     Note that UPPER == 0 is a special case: it is treated as the the
+     Note that UPPER == 0 is a special case: it is treated as the
      target's maximum memory address.  (0xffff on 16 bit targets,
      0xffffffff on 32 bit targets, etc.)
 
@@ -5796,7 +5852,7 @@ from accessing memory.
 8.14.1.2 Memory Access Size
 ...........................
 
-The acccess size attributes tells GDB to use specific sized accesses in
+The access size attribute tells GDB to use specific sized accesses in
 the memory region.  Often memory mapped device registers require
 specific sized accesses.  If no access size attribute is specified, GDB
 may use accesses of any size.
@@ -5827,10 +5883,29 @@ about volatile variables or memory mapped device registers.
 `nocache'
      Disable GDB from caching target memory.  This is the default.
 
+8.14.2 Memory Access Checking
+-----------------------------
+
+GDB can be instructed to refuse accesses to memory that is not
+explicitly described.  This can be useful if accessing such regions has
+undesired effects for a specific target, or to provide better error
+checking.  The following commands control this behaviour.
+
+`set mem inaccessible-by-default [on|off]'
+     If `on' is specified, make  GDB treat memory not explicitly
+     described by the memory ranges as non-existent and refuse accesses
+     to such memory.  The checks are only performed if there's at least
+     one memory range defined.  If `off' is specified, make GDB treat
+     the memory not explicitly described by the memory ranges as RAM.
+     The default value is `off'.  
+
+`show mem inaccessible-by-default'
+     Show the current handling of accesses to unknown memory.
+
 
 File: gdb.info,  Node: Dump/Restore Files,  Next: Core File Generation,  Prev: Memory Region Attributes,  Up: Data
 
-8.15 Copy between memory and a file
+8.15 Copy Between Memory and a File
 ===================================
 
 You can use the commands `dump', `append', and `restore' to copy data
@@ -5928,8 +6003,8 @@ inferior program uses we call the "target character set".
 
    For example, if you are running GDB on a GNU/Linux system, which
 uses the ISO Latin 1 character set, but you are using GDB's remote
-protocol (*note Remote Debugging: Remote.) to debug a program running
-on an IBM mainframe, which uses the EBCDIC character set, then the host
+protocol (*note Remote Debugging::) to debug a program running on an
+IBM mainframe, which uses the EBCDIC character set, then the host
 character set is Latin-1, and the target character set is EBCDIC.  If
 you give GDB the command `set target-charset EBCDIC-US', then GDB
 translates between EBCDIC and Latin 1 as you print character or string
@@ -6118,11 +6193,12 @@ File: gdb.info,  Node: Caching Remote Data,  Prev: Character Sets,  Up: Data
 ===================================
 
 GDB can cache data exchanged between the debugger and a remote target
-(*note Remote::).  Such caching generally improves performance, because
-it reduces the overhead of the remote protocol by bundling memory reads
-and writes into large chunks.  Unfortunately, GDB does not currently
-know anything about volatile registers, and thus data caching will
-produce incorrect results when volatile registers are in use.
+(*note Remote Debugging::).  Such caching generally improves
+performance, because it reduces the overhead of the remote protocol by
+bundling memory reads and writes into large chunks.  Unfortunately, GDB
+does not currently know anything about volatile registers, and thus
+data caching will produce incorrect results when volatile registers are
+in use.
 
 `set remotecache on'
 `set remotecache off'
@@ -6405,7 +6481,7 @@ conditions and actions.
 * Tracepoint Passcounts::
 * Tracepoint Actions::
 * Listing Tracepoints::
-* Starting and Stopping Trace Experiment::
+* Starting and Stopping Trace Experiments::
 
 
 File: gdb.info,  Node: Create and Delete Tracepoints,  Next: Enable and Disable Tracepoints,  Up: Set Tracepoints
@@ -6585,7 +6661,7 @@ File: gdb.info,  Node: Tracepoint Actions,  Next: Listing Tracepoints,  Prev: Tr
      You may abbreviate `while-stepping' as `ws' or `stepping'.
 
 
-File: gdb.info,  Node: Listing Tracepoints,  Next: Starting and Stopping Trace Experiment,  Prev: Tracepoint Actions,  Up: Set Tracepoints
+File: gdb.info,  Node: Listing Tracepoints,  Next: Starting and Stopping Trace Experiments,  Prev: Tracepoint Actions,  Up: Set Tracepoints
 
 10.1.5 Listing Tracepoints
 --------------------------
@@ -6620,10 +6696,10 @@ File: gdb.info,  Node: Listing Tracepoints,  Next: Starting and Stopping Trace E
      This command can be abbreviated `info tp'.
 
 
-File: gdb.info,  Node: Starting and Stopping Trace Experiment,  Prev: Listing Tracepoints,  Up: Set Tracepoints
+File: gdb.info,  Node: Starting and Stopping Trace Experiments,  Prev: Listing Tracepoints,  Up: Set Tracepoints
 
-10.1.6 Starting and Stopping Trace Experiment
----------------------------------------------
+10.1.6 Starting and Stopping Trace Experiments
+----------------------------------------------
 
 `tstart'
      This command takes no arguments.  It starts the trace experiment,
@@ -6660,7 +6736,7 @@ File: gdb.info,  Node: Starting and Stopping Trace Experiment,  Prev: Listing Tr
 
 File: gdb.info,  Node: Analyze Collected Data,  Next: Tracepoint Variables,  Prev: Set Tracepoints,  Up: Tracepoints
 
-10.2 Using the collected data
+10.2 Using the Collected Data
 =============================
 
 After the tracepoint experiment ends, you use GDB commands for
@@ -7266,13 +7342,13 @@ language you use to build expressions is called the "working language".
 * Setting::                     Switching between source languages
 * Show::                        Displaying the language
 * Checks::                      Type and range checks
-* Supported languages::         Supported languages
-* Unsupported languages::       Unsupported languages
+* Supported Languages::         Supported languages
+* Unsupported Languages::       Unsupported languages
 
 
 File: gdb.info,  Node: Setting,  Next: Show,  Up: Languages
 
-12.1 Switching between source languages
+12.1 Switching Between Source Languages
 =======================================
 
 There are two ways to control the working language--either have GDB set
@@ -7290,7 +7366,7 @@ name of the file.  The language of a source file controls whether C++
 names are demangled--this way `backtrace' can show each frame
 appropriately for its own language.  There is no way to set the
 language of a source file from within GDB, but you can set the language
-associated with a filename extension.  *Note Displaying the language:
+associated with a filename extension.  *Note Displaying the Language:
 Show.
 
    This is most commonly a problem when you use a program, such as
@@ -7309,7 +7385,7 @@ C code.
 
 File: gdb.info,  Node: Filenames,  Next: Manually,  Up: Setting
 
-12.1.1 List of filename extensions and languages
+12.1.1 List of Filename Extensions and Languages
 ------------------------------------------------
 
 If a source file name ends in one of the following extensions, then GDB
@@ -7348,90 +7424,5 @@ infers that its language is the one indicated.
      GDB does not skip over function prologues when stepping.
 
    In addition, you may set the language associated with a filename
-extension.  *Note Displaying the language: Show.
-
-
-File: gdb.info,  Node: Manually,  Next: Automatically,  Prev: Filenames,  Up: Setting
-
-12.1.2 Setting the working language
------------------------------------
-
-If you allow GDB to set the language automatically, expressions are
-interpreted the same way in your debugging session and your program.
-
-   If you wish, you may set the language manually.  To do this, issue
-the command `set language LANG', where LANG is the name of a language,
-such as `c' or `modula-2'.  For a list of the supported languages, type
-`set language'.
-
-   Setting the language manually prevents GDB from updating the working
-language automatically.  This can lead to confusion if you try to debug
-a program when the working language is not the same as the source
-language, when an expression is acceptable to both languages--but means
-different things.  For instance, if the current source file were
-written in C, and GDB was parsing Modula-2, a command such as:
-
-     print a = b + c
-
-might not have the effect you intended.  In C, this means to add `b'
-and `c' and place the result in `a'.  The result printed would be the
-value of `a'.  In Modula-2, this means to compare `a' to the result of
-`b+c', yielding a `BOOLEAN' value.
-
-
-File: gdb.info,  Node: Automatically,  Prev: Manually,  Up: Setting
-
-12.1.3 Having GDB infer the source language
--------------------------------------------
-
-To have GDB set the working language automatically, use `set language
-local' or `set language auto'.  GDB then infers the working language.
-That is, when your program stops in a frame (usually by encountering a
-breakpoint), GDB sets the working language to the language recorded for
-the function in that frame.  If the language for a frame is unknown
-(that is, if the function or block corresponding to the frame was
-defined in a source file that does not have a recognized extension),
-the current working language is not changed, and GDB issues a warning.
-
-   This may not seem necessary for most programs, which are written
-entirely in one source language.  However, program modules and libraries
-written in one source language can be used by a main program written in
-a different source language.  Using `set language auto' in this case
-frees you from having to set the working language manually.
-
-
-File: gdb.info,  Node: Show,  Next: Checks,  Prev: Setting,  Up: Languages
-
-12.2 Displaying the language
-============================
-
-The following commands help you find out which language is the working
-language, and also what language source files were written in.
-
-`show language'
-     Display the current working language.  This is the language you
-     can use with commands such as `print' to build and compute
-     expressions that may involve variables in your program.
-
-`info frame'
-     Display the source language for this frame.  This language becomes
-     the working language if you use an identifier from this frame.
-     *Note Information about a frame: Frame Info, to identify the other
-     information listed here.
-
-`info source'
-     Display the source language of this source file.  *Note Examining
-     the Symbol Table: Symbols, to identify the other information
-     listed here.
-
-   In unusual circumstances, you may have source files with extensions
-not in the standard list.  You can then set the extension associated
-with a language explicitly:
-
-`set extension-language EXT LANGUAGE'
-     Tell GDB that source files with extension EXT are to be assumed as
-     written in the source language LANGUAGE.
-
-`info extensions'
-     List all the filename extensions and the associated languages.
+extension.  *Note Displaying the Language: Show.
 
