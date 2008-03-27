@@ -2,7 +2,7 @@ This is the Debian GNU/Linux packaged version of the GDB manuals.
 
 This package was assembled by Daniel Jacobowitz, <dan@debian.org>.
 
-GDB itself is Copyright (C) Free Software Foundation, Inc.
+GDB itself is Copyright (C) 2008 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

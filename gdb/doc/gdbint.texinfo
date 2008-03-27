@@ -660,15 +660,26 @@ section is mostly irrelevant for software watchpoints.
 
 When the inferior stops, @value{GDBN} tries to establish, among other
 possible reasons, whether it stopped due to a watchpoint being hit.
-For a data-write watchpoint, it does so by evaluating, for each
-watchpoint, the expression whose value is being watched, and testing
-whether the watched value has changed.  For data-read and data-access
-watchpoints, @value{GDBN} needs the target to supply a primitive that
-returns the address of the data that was accessed or read (see the
-description of @code{target_stopped_data_address} below): if this
-primitive returns a valid address, @value{GDBN} infers that a
-watchpoint triggered if it watches an expression whose evaluation uses
-that address.
+It first uses @code{STOPPED_BY_WATCHPOINT} to see if any watchpoint
+was hit.  If not, all watchpoint checking is skipped.
+
+Then @value{GDBN} calls @code{target_stopped_data_address} exactly
+once.  This method returns the address of the watchpoint which
+triggered, if the target can determine it.  If the triggered address
+is available, @value{GDBN} compares the address returned by this
+method with each watched memory address in each active watchpoint.
+For data-read and data-access watchpoints, @value{GDBN} announces
+every watchpoint that watches the triggered address as being hit.
+For this reason, data-read and data-access watchpoints
+@emph{require} that the triggered address be available; if not, read
+and access watchpoints will never be considered hit.  For data-write
+watchpoints, if the triggered address is available, @value{GDBN}
+considers only those watchpoints which match that address;
+otherwise, @value{GDBN} considers all data-write watchpoints.  For
+each data-write watchpoint that @value{GDBN} considers, it evaluates
+the expression whose value is being watched, and tests whether the
+watched value has changed.  Watchpoints whose watched values have
+changed are announced as hit.
 
 @value{GDBN} uses several macros and primitives to support hardware
 watchpoints:
@@ -721,26 +732,40 @@ These two macros should return 0 for success, non-zero for failure.
 @item target_stopped_data_address (@var{addr_p})
 If the inferior has some watchpoint that triggered, place the address
 associated with the watchpoint at the location pointed to by
-@var{addr_p} and return non-zero.  Otherwise, return zero.  Note that
-this primitive is used by @value{GDBN} only on targets that support
-data-read or data-access type watchpoints, so targets that have
-support only for data-write watchpoints need not implement these
-primitives.
+@var{addr_p} and return non-zero.  Otherwise, return zero.  This
+is required for data-read and data-access watchpoints.  It is
+not required for data-write watchpoints, but @value{GDBN} uses
+it to improve handling of those also.
+
+@value{GDBN} will only call this method once per watchpoint stop,
+immediately after calling @code{STOPPED_BY_WATCHPOINT}.  If the
+target's watchpoint indication is sticky, i.e., stays set after
+resuming, this method should clear it.  For instance, the x86 debug
+control register has sticky triggered flags.
 
 @findex HAVE_STEPPABLE_WATCHPOINT
 @item HAVE_STEPPABLE_WATCHPOINT
 If defined to a non-zero value, it is not necessary to disable a
-watchpoint to step over it.
+watchpoint to step over it.    Like @code{gdbarch_have_nonsteppable_watchpoint},
+this is usually set when watchpoints trigger at the instruction
+which will perform an interesting read or write.  It should be
+set if there is a temporary disable bit which allows the processor
+to step over the interesting instruction without raising the
+watchpoint exception again.
 
 @findex gdbarch_have_nonsteppable_watchpoint 
 @item int gdbarch_have_nonsteppable_watchpoint (@var{gdbarch})
 If it returns a non-zero value, @value{GDBN} should disable a
-watchpoint to step the inferior over it.
+watchpoint to step the inferior over it.  This is usually set when
+watchpoints trigger at the instruction which will perform an
+interesting read or write.
 
 @findex HAVE_CONTINUABLE_WATCHPOINT
 @item HAVE_CONTINUABLE_WATCHPOINT
 If defined to a non-zero value, it is possible to continue the
-inferior after a watchpoint has been hit.
+inferior after a watchpoint has been hit.  This is usually set
+when watchpoints trigger at the instruction following an interesting
+read or write.
 
 @findex CANNOT_STEP_HW_WATCHPOINTS
 @item CANNOT_STEP_HW_WATCHPOINTS
@@ -762,6 +787,32 @@ the @var{wait_status} argument.
 determine for sure whether the inferior stopped due to a watchpoint,
 it could return non-zero ``just in case''.
 @end table
+
+@subsection Watchpoints and Threads
+@cindex watchpoints, with threads
+
+@value{GDBN} only supports process-wide watchpoints, which trigger
+in all threads.  @value{GDBN} uses the thread ID to make watchpoints
+act as if they were thread-specific, but it cannot set hardware
+watchpoints that only trigger in a specific thread.  Therefore, even
+if the target supports threads, per-thread debug registers, and
+watchpoints which only affect a single thread, it should set the
+per-thread debug registers for all threads to the same value.  On
+@sc{gnu}/Linux native targets, this is accomplished by using
+@code{ALL_LWPS} in @code{target_insert_watchpoint} and
+@code{target_remove_watchpoint} and by using
+@code{linux_set_new_thread} to register a handler for newly created
+threads.
+
+@value{GDBN}'s @sc{gnu}/Linux support only reports a single event
+at a time, although multiple events can trigger simultaneously for
+multi-threaded programs.  When multiple events occur, @file{linux-nat.c}
+queues subsequent events and returns them the next time the program
+is resumed.  This means that @code{STOPPED_BY_WATCHPOINT} and
+@code{target_stopped_data_address} only need to consult the current
+thread's state---the thread indicated by @code{inferior_ptid}.  If
+two threads have hit watchpoints simultaneously, those routines
+will be called a second time for the second thread.
 
 @subsection x86 Watchpoints
 @cindex x86 debug registers
@@ -2439,13 +2490,6 @@ of a function to be called if @code{SIGWINCH} is received.
 Define this to expand into code that will define the function named by
 the expansion of @code{SIGWINCH_HANDLER}.
 
-@item ALIGN_STACK_ON_STARTUP
-@cindex stack alignment
-Define this if your system is of a sort that will crash in
-@code{tgetent} if the stack happens not to be longword-aligned when
-@code{main} is called.  This is a rare situation, but is known to occur
-on several different types of systems.
-
 @item CRLF_SOURCE_FILES
 @cindex DOS text files
 Define this if host files use @code{\r\n} rather than @code{\n} as a
@@ -3175,6 +3219,9 @@ when stored in memory.
 
 When non-zero, the macros @code{gdbarch_register_to_value} and
 @code{value_to_register} are used to perform any necessary conversion.
+
+This function should return zero for the register's native type, when
+no conversion is necessary.
 @end deftypefun
 
 @deftypefun void gdbarch_register_to_value (struct gdbarch *@var{gdbarch}, int @var{reg}, struct type *@var{type}, char *@var{from}, char *@var{to})
@@ -3297,11 +3344,17 @@ Used to notify if the compiler promotes a @code{short} or @code{char}
 parameter to an @code{int}, but still reports the parameter as its
 original type, rather than the promoted type.
 
-@item BITS_BIG_ENDIAN
-@findex BITS_BIG_ENDIAN
-Define this if the numbering of bits in the targets does @strong{not} match the
-endianness of the target byte order.  A value of 1 means that the bits
+@item gdbarch_bits_big_endian (@var{gdbarch})
+@findex gdbarch_bits_big_endian
+This is used if the numbering of bits in the targets does @strong{not} match
+the endianness of the target byte order.  A value of 1 means that the bits
 are numbered in a big-endian bit order, 0 means little-endian.
+
+@item set_gdbarch_bits_big_endian (@var{gdbarch}, @var{bits_big_endian})
+@findex set_gdbarch_bits_big_endian
+Calling set_gdbarch_bits_big_endian with a value of 1 indicates that the
+bits in the target are numbered in a big-endian bit order, 0 indicates
+little-endian.
 
 @item BREAKPOINT
 @findex BREAKPOINT
@@ -3411,8 +3464,8 @@ default so that @value{GDBN} will assume that all registers may be written.
 
 @item int gdbarch_convert_register_p (@var{gdbarch}, @var{regnum}, struct type *@var{type})
 @findex gdbarch_convert_register_p
-Return non-zero if register @var{regnum} can represent data values in a
-non-standard form.
+Return non-zero if register @var{regnum} represents data values of type
+@var{type} in a non-standard form.
 @xref{Target Architecture Definition, , Using Different Register and Memory Data Representations}.
 
 @item CORE_ADDR gdbarch_decr_pc_after_break (@var{gdbarch})
@@ -3463,28 +3516,6 @@ If not defined, no conversion will be performed.
 @findex gdbarch_ecoff_reg_to_regnum
 Convert ECOFF register number  @var{ecoff_regnr} into @value{GDBN} regnum.  If
 not defined, no conversion will be performed.
-
-@item void gdbarch_extract_return_value (@var{gdbarch}, @var{type}, @var{regbuf}, @var{valbuf})
-@findex gdbarch_extract_return_value
-Define this to extract a function's return value of type @var{type} from
-the raw register state @var{regbuf} and copy that, in virtual format,
-into @var{valbuf}.
- 
-This method has been deprecated in favour of @code{gdbarch_return_value}
-(@pxref{gdbarch_return_value}).
-
-@item DEPRECATED_EXTRACT_STRUCT_VALUE_ADDRESS(@var{regbuf})
-@findex DEPRECATED_EXTRACT_STRUCT_VALUE_ADDRESS
-@anchor{DEPRECATED_EXTRACT_STRUCT_VALUE_ADDRESS}
-When defined, extract from the array @var{regbuf} (containing the raw
-register state) the @code{CORE_ADDR} at which a function should return
-its structure value.
-
-@xref{gdbarch_return_value}.
-
-@item DEPRECATED_EXTRACT_STRUCT_VALUE_ADDRESS_P()
-@findex DEPRECATED_EXTRACT_STRUCT_VALUE_ADDRESS_P
-Predicate for @code{DEPRECATED_EXTRACT_STRUCT_VALUE_ADDRESS}.
 
 @item DEPRECATED_FP_REGNUM
 @findex DEPRECATED_FP_REGNUM
@@ -3582,7 +3613,7 @@ is typically no more than:
 
 @smallexample
 ULONGEST pc;
-pc = frame_unwind_unsigned_register (next_frame, S390_PC_REGNUM);
+pc = frame_unwind_register_unsigned (next_frame, S390_PC_REGNUM);
 return gdbarch_addr_bits_remove (gdbarch, pc);
 @end smallexample
 
@@ -3599,7 +3630,7 @@ is typically no more than:
 
 @smallexample
 ULONGEST sp;
-sp = frame_unwind_unsigned_register (next_frame, S390_SP_REGNUM);
+sp = frame_unwind_register_unsigned (next_frame, S390_SP_REGNUM);
 return gdbarch_addr_bits_remove (gdbarch, sp);
 @end smallexample
 
@@ -3796,36 +3827,36 @@ A function that inserts or removes (depending on
 the next instruction. See @file{sparc-tdep.c} and @file{rs6000-tdep.c}
 for examples.
 
-@item SOFUN_ADDRESS_MAYBE_MISSING
-@findex SOFUN_ADDRESS_MAYBE_MISSING
+@item set_gdbarch_sofun_address_maybe_missing (@var{gdbarch}, @var{set})
+@findex set_gdbarch_sofun_address_maybe_missing
 Somebody clever observed that, the more actual addresses you have in the
 debug information, the more time the linker has to spend relocating
 them.  So whenever there's some other way the debugger could find the
 address it needs, you should omit it from the debug info, to make
 linking faster.
 
-@code{SOFUN_ADDRESS_MAYBE_MISSING} indicates that a particular set of
-hacks of this sort are in use, affecting @code{N_SO} and @code{N_FUN}
-entries in stabs-format debugging information.  @code{N_SO} stabs mark
-the beginning and ending addresses of compilation units in the text
-segment.  @code{N_FUN} stabs mark the starts and ends of functions.
+Calling @code{set_gdbarch_sofun_address_maybe_missing} with a non-zero
+argument @var{set} indicates that a particular set of hacks of this sort
+are in use, affecting @code{N_SO} and @code{N_FUN} entries in stabs-format
+debugging information.  @code{N_SO} stabs mark the beginning and ending
+addresses of compilation units in the text segment.  @code{N_FUN} stabs
+mark the starts and ends of functions.
 
-@code{SOFUN_ADDRESS_MAYBE_MISSING} means two things:
+In this case, @value{GDBN} assumes two things:
 
 @itemize @bullet
 @item
-@code{N_FUN} stabs have an address of zero.  Instead, you should find the
-addresses where the function starts by taking the function name from
-the stab, and then looking that up in the minsyms (the
-linker/assembler symbol table).  In other words, the stab has the
-name, and the linker/assembler symbol table is the only place that carries
-the address.
+@code{N_FUN} stabs have an address of zero.  Instead of using those
+addresses, you should find the address where the function starts by
+taking the function name from the stab, and then looking that up in the
+minsyms (the linker/assembler symbol table).  In other words, the stab
+has the name, and the linker/assembler symbol table is the only place
+that carries the address.
 
 @item
 @code{N_SO} stabs have an address of zero, too.  You just look at the
-@code{N_FUN} stabs that appear before and after the @code{N_SO} stab,
-and guess the starting and ending addresses of the compilation unit from
-them.
+@code{N_FUN} stabs that appear before and after the @code{N_SO} stab, and
+guess the starting and ending addresses of the compilation unit from them.
 @end itemize
 
 @item int gdbarch_pc_regnum (@var{gdbarch})
@@ -3838,13 +3869,9 @@ This should only need to be defined if @code{gdbarch_read_pc} and
 
 @item int gdbarch_stabs_argument_has_addr (@var{gdbarch}, @var{type})
 @findex gdbarch_stabs_argument_has_addr
-@findex DEPRECATED_REG_STRUCT_HAS_ADDR
 @anchor{gdbarch_stabs_argument_has_addr} Define this function to return
 nonzero if a function argument of type @var{type} is passed by reference
 instead of value.
-
-This method replaces @code{DEPRECATED_REG_STRUCT_HAS_ADDR}
-(@pxref{DEPRECATED_REG_STRUCT_HAS_ADDR}).
 
 @item PROCESS_LINENUMBER_HOOK
 @findex PROCESS_LINENUMBER_HOOK
@@ -3893,14 +3920,6 @@ This method replaces @w{@code{gdbarch_call_dummy_location (@var{gdbarch})}} and
 Return the name of register @var{regnr} as a string.  May return @code{NULL}
 to indicate that @var{regnr} is not a valid register.
 
-@item DEPRECATED_REG_STRUCT_HAS_ADDR (@var{gcc_p}, @var{type})
-@findex DEPRECATED_REG_STRUCT_HAS_ADDR
-@anchor{DEPRECATED_REG_STRUCT_HAS_ADDR}Define this to return 1 if the
-given type will be passed by pointer rather than directly.
-
-This method has been replaced by @code{gdbarch_stabs_argument_has_addr}
-(@pxref{gdbarch_stabs_argument_has_addr}).
-
 @item SAVE_DUMMY_FRAME_TOS (@var{sp})
 @findex SAVE_DUMMY_FRAME_TOS
 @anchor{SAVE_DUMMY_FRAME_TOS} Used in @samp{call_function_by_hand} to
@@ -3934,9 +3953,6 @@ If the register convention is being used, and @var{readbuf} is
 non-@code{NULL}, also copy the return value from @var{regcache} into
 @var{readbuf} (@var{regcache} contains a copy of the registers from the
 just returned function).
-
-@xref{DEPRECATED_EXTRACT_STRUCT_VALUE_ADDRESS}, for a description of how
-return-values that use the struct convention are handled.
 
 @emph{Maintainer note: This method replaces separate predicate, extract,
 store methods.  By having only one method, the logic needed to determine
@@ -3988,15 +4004,6 @@ there is no such register.
 @findex gdbarch_stab_reg_to_regnum
 Use this function to convert stab register @var{stab_regnr} into @value{GDBN}
 regnum.  If not defined, no conversion will be done.
-
-@item void gdbarch_store_return_value (@var{gdbarch}, @var{type}, @var{regcache}, @var{valbuf})
-@findex gdbarch_store_return_value
-A function that writes the function return value, found in
-@var{valbuf}, into the @var{regcache}.  @var{type} is the type of the
-value that is to be returned.
-
-This method has been deprecated in favour of @code{gdbarch_return_value}
-(@pxref{gdbarch_return_value}).
 
 @item SYMBOL_RELOADING_DEFAULT
 @findex SYMBOL_RELOADING_DEFAULT
@@ -4126,15 +4133,6 @@ This method has been deprecated in favour of @code{gdbarch_return_value}
 @findex gdbarch_value_to_register
 Convert a value of type @var{type} into the raw contents of a register.
 @xref{Target Architecture Definition, , Using Different Register and Memory Data Representations}.
-
-@item VARIABLES_INSIDE_BLOCK (@var{desc}, @var{gcc_p})
-@findex VARIABLES_INSIDE_BLOCK
-For dbx-style debugging information, if the compiler puts variable
-declarations inside LBRAC/RBRAC blocks, this should be defined to be
-nonzero.  @var{desc} is the value of @code{n_desc} from the
-@code{N_RBRAC} symbol, and @var{gcc_p} is true if @value{GDBN} has noticed the
-presence of either the @code{GCC_COMPILED_SYMBOL} or the
-@code{GCC2_COMPILED_SYMBOL}.  By default, this is 0.
 
 @end table
 
@@ -4646,16 +4644,6 @@ Defines the format for the name of a @file{/proc} device.  Should be
 defined in @file{nm.h} @emph{only} in order to override the default
 definition in @file{procfs.c}.
 
-@item SHELL_COMMAND_CONCAT
-@findex SHELL_COMMAND_CONCAT
-If defined, is a string to prefix on the shell command used to start the
-inferior.
-
-@item SHELL_FILE
-@findex SHELL_FILE
-If defined, this is the name of the shell to use to run the inferior.
-Defaults to @code{"/bin/sh"}.
-
 @item SOLIB_ADD (@var{filename}, @var{from_tty}, @var{targ}, @var{readsyms})
 @findex SOLIB_ADD
 Define this to expand into an expression that will cause the symbols in
@@ -4675,10 +4663,6 @@ twice; once when
 the shell execs, and once when the program itself execs.  If the actual
 number of traps is something other than 2, then define this macro to
 expand into the number expected.
-
-@item CLEAR_SOLIB
-@findex CLEAR_SOLIB
-See @file{objfiles.c}.
 
 @end table
 
@@ -5978,6 +5962,12 @@ Update the copyright year in the startup message
 
 Update the copyright year in file @file{top.c}, function
 @code{print_gdb_version}.
+
+@item
+Add the new year in the copyright notices of all source and documentation
+files.  This can be done semi-automatically by running the @code{copyright.sh}
+script.  This script requires Emacs 22 or later to be installed.
+
 @end itemize
 
 @node Releasing GDB
@@ -7067,6 +7057,21 @@ Any @file{@var{foo}-xdep.c} file that references STACK_END_ADDR
 is so old that it has never been converted to use BFD.  Now that's old!
 
 @end table
+
+@section Build Script
+
+@cindex build script
+
+The script @file{gdb_buildall.sh} builds @value{GDBN} with flag
+@option{--enable-targets=all} set.  This builds @value{GDBN} with all supported
+targets activated.  This helps testing @value{GDBN} when doing changes that
+affect more than one architecture and is much faster than using
+@file{gdb_mbuild.sh}.
+
+After building @value{GDBN} the script checks which architectures are
+supported and then switches the current architecture to each of those to get
+information about the architecture.  The test results are stored in log files
+in the directory the script was called from.
 
 @include observer.texi
 @raisesections

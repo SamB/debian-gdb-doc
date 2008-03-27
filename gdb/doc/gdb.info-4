@@ -9,7 +9,7 @@ END-INFO-DIR-ENTRY
    This file documents the GNU debugger GDB.
 
    This is the Ninth Edition, of `Debugging with GDB: the GNU
-Source-Level Debugger' for GDB Version 6.7.1.
+Source-Level Debugger' for GDB Version 6.8.
 
    Copyright (C) 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996,
 1998,
@@ -26,6 +26,685 @@ with the Back-Cover Texts as in (a) below.
    (a) The FSF's Back-Cover Text is: "You are free to copy and modify
 this GNU Manual.  Buying copies from GNU Press supports the FSF in
 developing GNU and promoting software freedom."
+
+
+File: gdb.info,  Node: Bytecode Descriptions,  Next: Using Agent Expressions,  Prev: General Bytecode Design,  Up: Agent Expressions
+
+E.2 Bytecode Descriptions
+=========================
+
+Each bytecode description has the following form:
+
+`add' (0x02): A B => A+B
+     Pop the top two stack items, A and B, as integers; push their sum,
+     as an integer.
+
+
+   In this example, `add' is the name of the bytecode, and `(0x02)' is
+the one-byte value used to encode the bytecode, in hexadecimal.  The
+phrase "A B => A+B" shows the stack before and after the bytecode
+executes.  Beforehand, the stack must contain at least two values, A
+and B; since the top of the stack is to the right, B is on the top of
+the stack, and A is underneath it.  After execution, the bytecode will
+have popped A and B from the stack, and replaced them with a single
+value, A+B.  There may be other values on the stack below those shown,
+but the bytecode affects only those shown.
+
+   Here is another example:
+
+`const8' (0x22) N: => N
+     Push the 8-bit integer constant N on the stack, without sign
+     extension.
+
+
+   In this example, the bytecode `const8' takes an operand N directly
+from the bytecode stream; the operand follows the `const8' bytecode
+itself.  We write any such operands immediately after the name of the
+bytecode, before the colon, and describe the exact encoding of the
+operand in the bytecode stream in the body of the bytecode description.
+
+   For the `const8' bytecode, there are no stack items given before the
+=>; this simply means that the bytecode consumes no values from the
+stack.  If a bytecode consumes no values, or produces no values, the
+list on either side of the => may be empty.
+
+   If a value is written as A, B, or N, then the bytecode treats it as
+an integer.  If a value is written is ADDR, then the bytecode treats it
+as an address.
+
+   We do not fully describe the floating point operations here; although
+this design can be extended in a clean way to handle floating point
+values, they are not of immediate interest to the customer, so we avoid
+describing them, to save time.
+
+`float' (0x01): =>
+     Prefix for floating-point bytecodes.  Not implemented yet.
+
+`add' (0x02): A B => A+B
+     Pop two integers from the stack, and push their sum, as an integer.
+
+`sub' (0x03): A B => A-B
+     Pop two integers from the stack, subtract the top value from the
+     next-to-top value, and push the difference.
+
+`mul' (0x04): A B => A*B
+     Pop two integers from the stack, multiply them, and push the
+     product on the stack.  Note that, when one multiplies two N-bit
+     numbers yielding another N-bit number, it is irrelevant whether the
+     numbers are signed or not; the results are the same.
+
+`div_signed' (0x05): A B => A/B
+     Pop two signed integers from the stack; divide the next-to-top
+     value by the top value, and push the quotient.  If the divisor is
+     zero, terminate with an error.
+
+`div_unsigned' (0x06): A B => A/B
+     Pop two unsigned integers from the stack; divide the next-to-top
+     value by the top value, and push the quotient.  If the divisor is
+     zero, terminate with an error.
+
+`rem_signed' (0x07): A B => A MODULO B
+     Pop two signed integers from the stack; divide the next-to-top
+     value by the top value, and push the remainder.  If the divisor is
+     zero, terminate with an error.
+
+`rem_unsigned' (0x08): A B => A MODULO B
+     Pop two unsigned integers from the stack; divide the next-to-top
+     value by the top value, and push the remainder.  If the divisor is
+     zero, terminate with an error.
+
+`lsh' (0x09): A B => A<<B
+     Pop two integers from the stack; let A be the next-to-top value,
+     and B be the top value.  Shift A left by B bits, and push the
+     result.
+
+`rsh_signed' (0x0a): A B => `(signed)'A>>B
+     Pop two integers from the stack; let A be the next-to-top value,
+     and B be the top value.  Shift A right by B bits, inserting copies
+     of the top bit at the high end, and push the result.
+
+`rsh_unsigned' (0x0b): A B => A>>B
+     Pop two integers from the stack; let A be the next-to-top value,
+     and B be the top value.  Shift A right by B bits, inserting zero
+     bits at the high end, and push the result.
+
+`log_not' (0x0e): A => !A
+     Pop an integer from the stack; if it is zero, push the value one;
+     otherwise, push the value zero.
+
+`bit_and' (0x0f): A B => A&B
+     Pop two integers from the stack, and push their bitwise `and'.
+
+`bit_or' (0x10): A B => A|B
+     Pop two integers from the stack, and push their bitwise `or'.
+
+`bit_xor' (0x11): A B => A^B
+     Pop two integers from the stack, and push their bitwise
+     exclusive-`or'.
+
+`bit_not' (0x12): A => ~A
+     Pop an integer from the stack, and push its bitwise complement.
+
+`equal' (0x13): A B => A=B
+     Pop two integers from the stack; if they are equal, push the value
+     one; otherwise, push the value zero.
+
+`less_signed' (0x14): A B => A<B
+     Pop two signed integers from the stack; if the next-to-top value
+     is less than the top value, push the value one; otherwise, push
+     the value zero.
+
+`less_unsigned' (0x15): A B => A<B
+     Pop two unsigned integers from the stack; if the next-to-top value
+     is less than the top value, push the value one; otherwise, push
+     the value zero.
+
+`ext' (0x16) N: A => A, sign-extended from N bits
+     Pop an unsigned value from the stack; treating it as an N-bit
+     twos-complement value, extend it to full length.  This means that
+     all bits to the left of bit N-1 (where the least significant bit
+     is bit 0) are set to the value of bit N-1.  Note that N may be
+     larger than or equal to the width of the stack elements of the
+     bytecode engine; in this case, the bytecode should have no effect.
+
+     The number of source bits to preserve, N, is encoded as a single
+     byte unsigned integer following the `ext' bytecode.
+
+`zero_ext' (0x2a) N: A => A, zero-extended from N bits
+     Pop an unsigned value from the stack; zero all but the bottom N
+     bits.  This means that all bits to the left of bit N-1 (where the
+     least significant bit is bit 0) are set to the value of bit N-1.
+
+     The number of source bits to preserve, N, is encoded as a single
+     byte unsigned integer following the `zero_ext' bytecode.
+
+`ref8' (0x17): ADDR => A
+`ref16' (0x18): ADDR => A
+`ref32' (0x19): ADDR => A
+`ref64' (0x1a): ADDR => A
+     Pop an address ADDR from the stack.  For bytecode `ref'N, fetch an
+     N-bit value from ADDR, using the natural target endianness.  Push
+     the fetched value as an unsigned integer.
+
+     Note that ADDR may not be aligned in any particular way; the
+     `refN' bytecodes should operate correctly for any address.
+
+     If attempting to access memory at ADDR would cause a processor
+     exception of some sort, terminate with an error.
+
+`ref_float' (0x1b): ADDR => D
+`ref_double' (0x1c): ADDR => D
+`ref_long_double' (0x1d): ADDR => D
+`l_to_d' (0x1e): A => D
+`d_to_l' (0x1f): D => A
+     Not implemented yet.
+
+`dup' (0x28): A => A A
+     Push another copy of the stack's top element.
+
+`swap' (0x2b): A B => B A
+     Exchange the top two items on the stack.
+
+`pop' (0x29): A =>
+     Discard the top value on the stack.
+
+`if_goto' (0x20) OFFSET: A =>
+     Pop an integer off the stack; if it is non-zero, branch to the
+     given offset in the bytecode string.  Otherwise, continue to the
+     next instruction in the bytecode stream.  In other words, if A is
+     non-zero, set the `pc' register to `start' + OFFSET.  Thus, an
+     offset of zero denotes the beginning of the expression.
+
+     The OFFSET is stored as a sixteen-bit unsigned value, stored
+     immediately following the `if_goto' bytecode.  It is always stored
+     most significant byte first, regardless of the target's normal
+     endianness.  The offset is not guaranteed to fall at any particular
+     alignment within the bytecode stream; thus, on machines where
+     fetching a 16-bit on an unaligned address raises an exception, you
+     should fetch the offset one byte at a time.
+
+`goto' (0x21) OFFSET: =>
+     Branch unconditionally to OFFSET; in other words, set the `pc'
+     register to `start' + OFFSET.
+
+     The offset is stored in the same way as for the `if_goto' bytecode.
+
+`const8' (0x22) N: => N
+`const16' (0x23) N: => N
+`const32' (0x24) N: => N
+`const64' (0x25) N: => N
+     Push the integer constant N on the stack, without sign extension.
+     To produce a small negative value, push a small twos-complement
+     value, and then sign-extend it using the `ext' bytecode.
+
+     The constant N is stored in the appropriate number of bytes
+     following the `const'B bytecode.  The constant N is always stored
+     most significant byte first, regardless of the target's normal
+     endianness.  The constant is not guaranteed to fall at any
+     particular alignment within the bytecode stream; thus, on machines
+     where fetching a 16-bit on an unaligned address raises an
+     exception, you should fetch N one byte at a time.
+
+`reg' (0x26) N: => A
+     Push the value of register number N, without sign extension.  The
+     registers are numbered following GDB's conventions.
+
+     The register number N is encoded as a 16-bit unsigned integer
+     immediately following the `reg' bytecode.  It is always stored most
+     significant byte first, regardless of the target's normal
+     endianness.  The register number is not guaranteed to fall at any
+     particular alignment within the bytecode stream; thus, on machines
+     where fetching a 16-bit on an unaligned address raises an
+     exception, you should fetch the register number one byte at a time.
+
+`trace' (0x0c): ADDR SIZE =>
+     Record the contents of the SIZE bytes at ADDR in a trace buffer,
+     for later retrieval by GDB.
+
+`trace_quick' (0x0d) SIZE: ADDR => ADDR
+     Record the contents of the SIZE bytes at ADDR in a trace buffer,
+     for later retrieval by GDB.  SIZE is a single byte unsigned
+     integer following the `trace' opcode.
+
+     This bytecode is equivalent to the sequence `dup const8 SIZE
+     trace', but we provide it anyway to save space in bytecode strings.
+
+`trace16' (0x30) SIZE: ADDR => ADDR
+     Identical to trace_quick, except that SIZE is a 16-bit big-endian
+     unsigned integer, not a single byte.  This should probably have
+     been named `trace_quick16', for consistency.
+
+`end' (0x27): =>
+     Stop executing bytecode; the result should be the top element of
+     the stack.  If the purpose of the expression was to compute an
+     lvalue or a range of memory, then the next-to-top of the stack is
+     the lvalue's address, and the top of the stack is the lvalue's
+     size, in bytes.
+
+
+
+File: gdb.info,  Node: Using Agent Expressions,  Next: Varying Target Capabilities,  Prev: Bytecode Descriptions,  Up: Agent Expressions
+
+E.3 Using Agent Expressions
+===========================
+
+Here is a sketch of a full non-stop debugging cycle, showing how agent
+expressions fit into the process.
+
+   * The user selects trace points in the program's code at which GDB
+     should collect data.
+
+   * The user specifies expressions to evaluate at each trace point.
+     These expressions may denote objects in memory, in which case
+     those objects' contents are recorded as the program runs, or
+     computed values, in which case the values themselves are recorded.
+
+   * GDB transmits the tracepoints and their associated expressions to
+     the GDB agent, running on the debugging target.
+
+   * The agent arranges to be notified when a trace point is hit.  Note
+     that, on some systems, the target operating system is completely
+     responsible for collecting the data; see *Note Tracing on
+     Symmetrix::.
+
+   * When execution on the target reaches a trace point, the agent
+     evaluates the expressions associated with that trace point, and
+     records the resulting values and memory ranges.
+
+   * Later, when the user selects a given trace event and inspects the
+     objects and expression values recorded, GDB talks to the agent to
+     retrieve recorded data as necessary to meet the user's requests.
+     If the user asks to see an object whose contents have not been
+     recorded, GDB reports an error.
+
+
+
+File: gdb.info,  Node: Varying Target Capabilities,  Next: Tracing on Symmetrix,  Prev: Using Agent Expressions,  Up: Agent Expressions
+
+E.4 Varying Target Capabilities
+===============================
+
+Some targets don't support floating-point, and some would rather not
+have to deal with `long long' operations.  Also, different targets will
+have different stack sizes, and different bytecode buffer lengths.
+
+   Thus, GDB needs a way to ask the target about itself.  We haven't
+worked out the details yet, but in general, GDB should be able to send
+the target a packet asking it to describe itself.  The reply should be a
+packet whose length is explicit, so we can add new information to the
+packet in future revisions of the agent, without confusing old versions
+of GDB, and it should contain a version number.  It should contain at
+least the following information:
+
+   * whether floating point is supported
+
+   * whether `long long' is supported
+
+   * maximum acceptable size of bytecode stack
+
+   * maximum acceptable length of bytecode expressions
+
+   * which registers are actually available for collection
+
+   * whether the target supports disabled tracepoints
+
+
+
+File: gdb.info,  Node: Tracing on Symmetrix,  Next: Rationale,  Prev: Varying Target Capabilities,  Up: Agent Expressions
+
+E.5 Tracing on Symmetrix
+========================
+
+This section documents the API used by the GDB agent to collect data on
+Symmetrix systems.
+
+   Cygnus originally implemented these tracing features to help EMC
+Corporation debug their Symmetrix high-availability disk drives.  The
+Symmetrix application code already includes substantial tracing
+facilities; the GDB agent for the Symmetrix system uses those facilities
+for its own data collection, via the API described here.
+
+ -- Function: DTC_RESPONSE adbg_find_memory_in_frame (FRAME_DEF *FRAME,
+          char *ADDRESS, char **BUFFER, unsigned int *SIZE)
+     Search the trace frame FRAME for memory saved from ADDRESS.  If
+     the memory is available, provide the address of the buffer holding
+     it; otherwise, provide the address of the next saved area.
+
+        * If the memory at ADDRESS was saved in FRAME, set `*BUFFER' to
+          point to the buffer in which that memory was saved, set
+          `*SIZE' to the number of bytes from ADDRESS that are saved at
+          `*BUFFER', and return `OK_TARGET_RESPONSE'.  (Clearly, in
+          this case, the function will always set `*SIZE' to a value
+          greater than zero.)
+
+        * If FRAME does not record any memory at ADDRESS, set `*SIZE'
+          to the distance from ADDRESS to the start of the saved region
+          with the lowest address higher than ADDRESS.  If there is no
+          memory saved from any higher address, set `*SIZE' to zero.
+          Return `NOT_FOUND_TARGET_RESPONSE'.
+
+     These two possibilities allow the caller to either retrieve the
+     data, or walk the address space to the next saved area.
+
+   This function allows the GDB agent to map the regions of memory
+saved in a particular frame, and retrieve their contents efficiently.
+
+   This function also provides a clean interface between the GDB agent
+and the Symmetrix tracing structures, making it easier to adapt the GDB
+agent to future versions of the Symmetrix system, and vice versa.  This
+function searches all data saved in FRAME, whether the data is there at
+the request of a bytecode expression, or because it falls in one of the
+format's memory ranges, or because it was saved from the top of the
+stack.  EMC can arbitrarily change and enhance the tracing mechanism,
+but as long as this function works properly, all collected memory is
+visible to GDB.
+
+   The function itself is straightforward to implement.  A single pass
+over the trace frame's stack area, memory ranges, and expression blocks
+can yield the address of the buffer (if the requested address was
+saved), and also note the address of the next higher range of memory,
+to be returned when the search fails.
+
+   As an example, suppose the trace frame `f' has saved sixteen bytes
+from address `0x8000' in a buffer at `0x1000', and thirty-two bytes
+from address `0xc000' in a buffer at `0x1010'.  Here are some sample
+calls, and the effect each would have:
+
+`adbg_find_memory_in_frame (f, (char*) 0x8000, &buffer, &size)'
+     This would set `buffer' to `0x1000', set `size' to sixteen, and
+     return `OK_TARGET_RESPONSE', since `f' saves sixteen bytes from
+     `0x8000' at `0x1000'.
+
+`adbg_find_memory_in_frame (f, (char *) 0x8004, &buffer, &size)'
+     This would set `buffer' to `0x1004', set `size' to twelve, and
+     return `OK_TARGET_RESPONSE', since `f' saves the twelve bytes from
+     `0x8004' starting four bytes into the buffer at `0x1000'.  This
+     shows that request addresses may fall in the middle of saved
+     areas; the function should return the address and size of the
+     remainder of the buffer.
+
+`adbg_find_memory_in_frame (f, (char *) 0x8100, &buffer, &size)'
+     This would set `size' to `0x3f00' and return
+     `NOT_FOUND_TARGET_RESPONSE', since there is no memory saved in `f'
+     from the address `0x8100', and the next memory available is at
+     `0x8100 + 0x3f00', or `0xc000'.  This shows that request addresses
+     may fall outside of all saved memory ranges; the function should
+     indicate the next saved area, if any.
+
+`adbg_find_memory_in_frame (f, (char *) 0x7000, &buffer, &size)'
+     This would set `size' to `0x1000' and return
+     `NOT_FOUND_TARGET_RESPONSE', since the next saved memory is at
+     `0x7000 + 0x1000', or `0x8000'.
+
+`adbg_find_memory_in_frame (f, (char *) 0xf000, &buffer, &size)'
+     This would set `size' to zero, and return
+     `NOT_FOUND_TARGET_RESPONSE'.  This shows how the function tells the
+     caller that no further memory ranges have been saved.
+
+
+   As another example, here is a function which will print out the
+addresses of all memory saved in the trace frame `frame' on the
+Symmetrix INLINES console:
+     void
+     print_frame_addresses (FRAME_DEF *frame)
+     {
+       char *addr;
+       char *buffer;
+       unsigned long size;
+
+       addr = 0;
+       for (;;)
+         {
+           /* Either find out how much memory we have here, or discover
+              where the next saved region is.  */
+           if (adbg_find_memory_in_frame (frame, addr, &buffer, &size)
+               == OK_TARGET_RESPONSE)
+             printp ("saved %x to %x\n", addr, addr + size);
+           if (size == 0)
+             break;
+           addr += size;
+         }
+     }
+
+   Note that there is not necessarily any connection between the order
+in which the data is saved in the trace frame, and the order in which
+`adbg_find_memory_in_frame' will return those memory ranges.  The code
+above will always print the saved memory regions in order of increasing
+address, while the underlying frame structure might store the data in a
+random order.
+
+   [[This section should cover the rest of the Symmetrix functions the
+stub relies upon, too.]]
+
+
+File: gdb.info,  Node: Rationale,  Prev: Tracing on Symmetrix,  Up: Agent Expressions
+
+E.6 Rationale
+=============
+
+Some of the design decisions apparent above are arguable.
+
+What about stack overflow/underflow?
+     GDB should be able to query the target to discover its stack size.
+     Given that information, GDB can determine at translation time
+     whether a given expression will overflow the stack.  But this spec
+     isn't about what kinds of error-checking GDB ought to do.
+
+Why are you doing everything in LONGEST?
+     Speed isn't important, but agent code size is; using LONGEST
+     brings in a bunch of support code to do things like division, etc.
+     So this is a serious concern.
+
+     First, note that you don't need different bytecodes for different
+     operand sizes.  You can generate code without _knowing_ how big the
+     stack elements actually are on the target.  If the target only
+     supports 32-bit ints, and you don't send any 64-bit bytecodes,
+     everything just works.  The observation here is that the MIPS and
+     the Alpha have only fixed-size registers, and you can still get
+     C's semantics even though most instructions only operate on
+     full-sized words.  You just need to make sure everything is
+     properly sign-extended at the right times.  So there is no need
+     for 32- and 64-bit variants of the bytecodes.  Just implement
+     everything using the largest size you support.
+
+     GDB should certainly check to see what sizes the target supports,
+     so the user can get an error earlier, rather than later.  But this
+     information is not necessary for correctness.
+
+Why don't you have `>' or `<=' operators?
+     I want to keep the interpreter small, and we don't need them.  We
+     can combine the `less_' opcodes with `log_not', and swap the order
+     of the operands, yielding all four asymmetrical comparison
+     operators.  For example, `(x <= y)' is `! (x > y)', which is `! (y
+     < x)'.
+
+Why do you have `log_not'?
+Why do you have `ext'?
+Why do you have `zero_ext'?
+     These are all easily synthesized from other instructions, but I
+     expect them to be used frequently, and they're simple, so I
+     include them to keep bytecode strings short.
+
+     `log_not' is equivalent to `const8 0 equal'; it's used in half the
+     relational operators.
+
+     `ext N' is equivalent to `const8 S-N lsh const8 S-N rsh_signed',
+     where S is the size of the stack elements; it follows `refM' and
+     REG bytecodes when the value should be signed.  See the next
+     bulleted item.
+
+     `zero_ext N' is equivalent to `constM MASK log_and'; it's used
+     whenever we push the value of a register, because we can't assume
+     the upper bits of the register aren't garbage.
+
+Why not have sign-extending variants of the `ref' operators?
+     Because that would double the number of `ref' operators, and we
+     need the `ext' bytecode anyway for accessing bitfields.
+
+Why not have constant-address variants of the `ref' operators?
+     Because that would double the number of `ref' operators again, and
+     `const32 ADDRESS ref32' is only one byte longer.
+
+Why do the `refN' operators have to support unaligned fetches?
+     GDB will generate bytecode that fetches multi-byte values at
+     unaligned addresses whenever the executable's debugging
+     information tells it to.  Furthermore, GDB does not know the value
+     the pointer will have when GDB generates the bytecode, so it
+     cannot determine whether a particular fetch will be aligned or not.
+
+     In particular, structure bitfields may be several bytes long, but
+     follow no alignment rules; members of packed structures are not
+     necessarily aligned either.
+
+     In general, there are many cases where unaligned references occur
+     in correct C code, either at the programmer's explicit request, or
+     at the compiler's discretion.  Thus, it is simpler to make the GDB
+     agent bytecodes work correctly in all circumstances than to make
+     GDB guess in each case whether the compiler did the usual thing.
+
+Why are there no side-effecting operators?
+     Because our current client doesn't want them?  That's a cheap
+     answer.  I think the real answer is that I'm afraid of
+     implementing function calls.  We should re-visit this issue after
+     the present contract is delivered.
+
+Why aren't the `goto' ops PC-relative?
+     The interpreter has the base address around anyway for PC bounds
+     checking, and it seemed simpler.
+
+Why is there only one offset size for the `goto' ops?
+     Offsets are currently sixteen bits.  I'm not happy with this
+     situation either:
+
+     Suppose we have multiple branch ops with different offset sizes.
+     As I generate code left-to-right, all my jumps are forward jumps
+     (there are no loops in expressions), so I never know the target
+     when I emit the jump opcode.  Thus, I have to either always assume
+     the largest offset size, or do jump relaxation on the code after I
+     generate it, which seems like a big waste of time.
+
+     I can imagine a reasonable expression being longer than 256 bytes.
+     I can't imagine one being longer than 64k.  Thus, we need 16-bit
+     offsets.  This kind of reasoning is so bogus, but relaxation is
+     pathetic.
+
+     The other approach would be to generate code right-to-left.  Then
+     I'd always know my offset size.  That might be fun.
+
+Where is the function call bytecode?
+     When we add side-effects, we should add this.
+
+Why does the `reg' bytecode take a 16-bit register number?
+     Intel's IA-64 architecture has 128 general-purpose registers, and
+     128 floating-point registers, and I'm sure it has some random
+     control registers.
+
+Why do we need `trace' and `trace_quick'?
+     Because GDB needs to record all the memory contents and registers
+     an expression touches.  If the user wants to evaluate an expression
+     `x->y->z', the agent must record the values of `x' and `x->y' as
+     well as the value of `x->y->z'.
+
+Don't the `trace' bytecodes make the interpreter less general?
+     They do mean that the interpreter contains special-purpose code,
+     but that doesn't mean the interpreter can only be used for that
+     purpose.  If an expression doesn't use the `trace' bytecodes, they
+     don't get in its way.
+
+Why doesn't `trace_quick' consume its arguments the way everything else does?
+     In general, you do want your operators to consume their arguments;
+     it's consistent, and generally reduces the amount of stack
+     rearrangement necessary.  However, `trace_quick' is a kludge to
+     save space; it only exists so we needn't write `dup const8 SIZE
+     trace' before every memory reference.  Therefore, it's okay for it
+     not to consume its arguments; it's meant for a specific context in
+     which we know exactly what it should do with the stack.  If we're
+     going to have a kludge, it should be an effective kludge.
+
+Why does `trace16' exist?
+     That opcode was added by the customer that contracted Cygnus for
+     the data tracing work.  I personally think it is unnecessary;
+     objects that large will be quite rare, so it is okay to use `dup
+     const16 SIZE trace' in those cases.
+
+     Whatever we decide to do with `trace16', we should at least leave
+     opcode 0x30 reserved, to remain compatible with the customer who
+     added it.
+
+
+
+File: gdb.info,  Node: Target Descriptions,  Next: Copying,  Prev: Agent Expressions,  Up: Top
+
+Appendix F Target Descriptions
+******************************
+
+*Warning:* target descriptions are still under active development, and
+the contents and format may change between GDB releases.  The format is
+expected to stabilize in the future.
+
+   One of the challenges of using GDB to debug embedded systems is that
+there are so many minor variants of each processor architecture in use.
+It is common practice for vendors to start with a standard processor
+core -- ARM, PowerPC, or MIPS, for example -- and then make changes to
+adapt it to a particular market niche.  Some architectures have
+hundreds of variants, available from dozens of vendors.  This leads to
+a number of problems:
+
+   * With so many different customized processors, it is difficult for
+     the GDB maintainers to keep up with the changes.
+
+   * Since individual variants may have short lifetimes or limited
+     audiences, it may not be worthwhile to carry information about
+     every variant in the GDB source tree.
+
+   * When GDB does support the architecture of the embedded system at
+     hand, the task of finding the correct architecture name to give the
+     `set architecture' command can be error-prone.
+
+   To address these problems, the GDB remote protocol allows a target
+system to not only identify itself to GDB, but to actually describe its
+own features.  This lets GDB support processor variants it has never
+seen before -- to the extent that the descriptions are accurate, and
+that GDB understands them.
+
+   GDB must be linked with the Expat library to support XML target
+descriptions.  *Note Expat::.
+
+* Menu:
+
+* Retrieving Descriptions::         How descriptions are fetched from a target.
+* Target Description Format::       The contents of a target description.
+* Predefined Target Types::         Standard types available for target
+                                    descriptions.
+* Standard Target Features::        Features GDB knows about.
+
+
+File: gdb.info,  Node: Retrieving Descriptions,  Next: Target Description Format,  Up: Target Descriptions
+
+F.1 Retrieving Descriptions
+===========================
+
+Target descriptions can be read from the target automatically, or
+specified by the user manually.  The default behavior is to read the
+description from the target.  GDB retrieves it via the remote protocol
+using `qXfer' requests (*note qXfer: General Query Packets.).  The
+ANNEX in the `qXfer' packet will be `target.xml'.  The contents of the
+`target.xml' annex are an XML document, of the form described in *Note
+Target Description Format::.
+
+   Alternatively, you can specify a file to read for the target
+description.  If a file is set, the target will not be queried.  The
+commands to specify a file are:
+
+`set tdesc filename PATH'
+     Read the target description from PATH.
+
+`unset tdesc filename'
+     Do not read the XML target description from a file.  GDB will use
+     the description supplied by the current target.
+
+`show tdesc filename'
+     Show the filename to read for a target description, if any.
 
 
 File: gdb.info,  Node: Target Description Format,  Next: Predefined Target Types,  Prev: Retrieving Descriptions,  Up: Target Descriptions
@@ -216,12 +895,14 @@ types.  The currently supported types are:
 `int16'
 `int32'
 `int64'
+`int128'
      Signed integer types holding the specified number of bits.
 
 `uint8'
 `uint16'
 `uint32'
 `uint64'
+`uint128'
      Unsigned integer types holding the specified number of bits.
 
 `code_ptr'
@@ -279,10 +960,12 @@ using the capitalization used in the description.
 * Menu:
 
 * ARM Features::
+* MIPS Features::
 * M68K Features::
+* PowerPC Features::
 
 
-File: gdb.info,  Node: ARM Features,  Next: M68K Features,  Up: Standard Target Features
+File: gdb.info,  Node: ARM Features,  Next: MIPS Features,  Up: Standard Target Features
 
 F.4.1 ARM Features
 ------------------
@@ -298,6 +981,9 @@ should contain registers `f0' through `f7' and `fps'.
 should contain at least registers `wR0' through `wR15' and `wCGR0'
 through `wCGR3'.  The `wCID', `wCon', `wCSSF', and `wCASF' registers
 are optional.
+
+
+File: gdb.info,  Node: MIPS Features,  Next: M68K Features,  Prev: ARM Features,  Up: Standard Target Features
 
 F.4.2 MIPS Features
 -------------------
@@ -320,7 +1006,7 @@ a single register, `restart', which is used by the Linux kernel to
 control restartable syscalls.
 
 
-File: gdb.info,  Node: M68K Features,  Prev: ARM Features,  Up: Standard Target Features
+File: gdb.info,  Node: M68K Features,  Next: PowerPC Features,  Prev: MIPS Features,  Up: Standard Target Features
 
 F.4.3 M68K Features
 -------------------
@@ -336,6 +1022,29 @@ F.4.3 M68K Features
 ``org.gnu.gdb.coldfire.fp''
      This feature is optional.  If present, it should contain registers
      `fp0' through `fp7', `fpcontrol', `fpstatus' and `fpiaddr'.
+
+
+File: gdb.info,  Node: PowerPC Features,  Prev: M68K Features,  Up: Standard Target Features
+
+F.4.4 PowerPC Features
+----------------------
+
+The `org.gnu.gdb.power.core' feature is required for PowerPC targets.
+It should contain registers `r0' through `r31', `pc', `msr', `cr',
+`lr', `ctr', and `xer'.  They may be 32-bit or 64-bit depending on the
+target.
+
+   The `org.gnu.gdb.power.fpu' feature is optional.  It should contain
+registers `f0' through `f31' and `fpscr'.
+
+   The `org.gnu.gdb.power.altivec' feature is optional.  It should
+contain registers `vr0' through `vr31', `vscr', and `vrsave'.
+
+   The `org.gnu.gdb.power.spe' feature is optional.  It should contain
+registers `ev0h' through `ev31h', `acc', and `spefscr'.  SPE targets
+should provide 32-bit registers in `org.gnu.gdb.power.core' and provide
+the upper halves in `ev0h' through `ev31h'.  GDB will combine these to
+present registers `ev0' through `ev31' to the user.
 
 
 File: gdb.info,  Node: Copying,  Next: GNU Free Documentation License,  Prev: Target Descriptions,  Up: Top
@@ -1144,8 +1853,8 @@ Index
 * # in Modula-2:                         GDB/M2.              (line  18)
 * $:                                     Value History.       (line  13)
 * $$:                                    Value History.       (line  13)
-* $_ and info breakpoints:               Set Breaks.          (line 136)
-* $_ and info line:                      Machine Code.        (line  30)
+* $_ and info breakpoints:               Set Breaks.          (line 112)
+* $_ and info line:                      Machine Code.        (line  29)
 * $_, $__, and value history:            Memory.              (line  91)
 * $_, convenience variable:              Convenience Vars.    (line  64)
 * $__, convenience variable:             Convenience Vars.    (line  73)
@@ -1171,19 +1880,19 @@ Index
 * --batch-silent:                        Mode Options.        (line  39)
 * --baud:                                Mode Options.        (line 120)
 * --cd:                                  Mode Options.        (line  80)
-* --command:                             File Options.        (line  55)
+* --command:                             File Options.        (line  51)
 * --core:                                File Options.        (line  43)
-* --directory:                           File Options.        (line  70)
+* --directory:                           File Options.        (line  66)
 * --epoch:                               Mode Options.        (line  96)
-* --eval-command:                        File Options.        (line  60)
+* --eval-command:                        File Options.        (line  56)
 * --exec:                                File Options.        (line  35)
 * --fullname:                            Mode Options.        (line  85)
 * --interpreter:                         Mode Options.        (line 141)
 * --nowindows:                           Mode Options.        (line  70)
 * --nx:                                  Mode Options.        (line  11)
-* --pid:                                 File Options.        (line  49)
+* --pid:                                 File Options.        (line  47)
 * --quiet:                               Mode Options.        (line  19)
-* --readnow:                             File Options.        (line  74)
+* --readnow:                             File Options.        (line  70)
 * --return-child-result:                 Mode Options.        (line  51)
 * --se:                                  File Options.        (line  39)
 * --silent:                              Mode Options.        (line  19)
@@ -1193,7 +1902,7 @@ Index
 * --tui:                                 Mode Options.        (line 132)
 * --version:                             Mode Options.        (line 162)
 * --windows:                             Mode Options.        (line  76)
-* --with-sysroot:                        Files.               (line 378)
+* --with-sysroot:                        Files.               (line 381)
 * --write:                               Mode Options.        (line 153)
 * -b:                                    Mode Options.        (line 120)
 * -break-after:                          GDB/MI Breakpoint Commands.
@@ -1211,11 +1920,11 @@ Index
 * -break-insert:                         GDB/MI Breakpoint Commands.
                                                               (line 216)
 * -break-list:                           GDB/MI Breakpoint Commands.
-                                                              (line 313)
+                                                              (line 314)
 * -break-watch:                          GDB/MI Breakpoint Commands.
-                                                              (line 388)
+                                                              (line 389)
 * -c:                                    File Options.        (line  43)
-* -d:                                    File Options.        (line  70)
+* -d:                                    File Options.        (line  66)
 * -data-disassemble:                     GDB/MI Data Manipulation.
                                                               (line  12)
 * -data-evaluate-expression:             GDB/MI Data Manipulation.
@@ -1230,7 +1939,7 @@ Index
                                                               (line 343)
 * -e:                                    File Options.        (line  35)
 * -enable-timings:                       GDB/MI Miscellaneous Commands.
-                                                              (line 206)
+                                                              (line 235)
 * -environment-cd:                       GDB/MI Program Context.
                                                               (line  50)
 * -environment-directory:                GDB/MI Program Context.
@@ -1239,7 +1948,7 @@ Index
                                                               (line 117)
 * -environment-pwd:                      GDB/MI Program Context.
                                                               (line 158)
-* -ex:                                   File Options.        (line  60)
+* -ex:                                   File Options.        (line  56)
 * -exec-abort:                           GDB/MI Miscellaneous Commands.
                                                               (line  31)
 * -exec-arguments:                       GDB/MI Program Context.
@@ -1276,13 +1985,13 @@ Index
 * -file-list-exec-source-file:           GDB/MI File Commands.
                                                               (line  88)
 * -file-list-exec-source-files:          GDB/MI File Commands.
-                                                              (line 112)
+                                                              (line 114)
 * -file-list-shared-libraries:           GDB/MI File Commands.
-                                                              (line 142)
+                                                              (line 144)
 * -file-list-symbol-files:               GDB/MI File Commands.
-                                                              (line 162)
+                                                              (line 164)
 * -file-symbol-file:                     GDB/MI File Commands.
-                                                              (line 182)
+                                                              (line 184)
 * -gdb-exit:                             GDB/MI Miscellaneous Commands.
                                                               (line   9)
 * -gdb-set:                              GDB/MI Miscellaneous Commands.
@@ -1292,17 +2001,19 @@ Index
 * -gdb-version:                          GDB/MI Miscellaneous Commands.
                                                               (line  97)
 * -inferior-tty-set:                     GDB/MI Miscellaneous Commands.
-                                                              (line 157)
+                                                              (line 186)
 * -inferior-tty-show:                    GDB/MI Miscellaneous Commands.
-                                                              (line 180)
+                                                              (line 209)
 * -interpreter-exec:                     GDB/MI Miscellaneous Commands.
-                                                              (line 131)
+                                                              (line 160)
 * -l:                                    Mode Options.        (line 124)
+* -list-features:                        GDB/MI Miscellaneous Commands.
+                                                              (line 131)
 * -n:                                    Mode Options.        (line  11)
 * -nw:                                   Mode Options.        (line  70)
-* -p:                                    File Options.        (line  49)
+* -p:                                    File Options.        (line  47)
 * -q:                                    Mode Options.        (line  19)
-* -r:                                    File Options.        (line  74)
+* -r:                                    File Options.        (line  70)
 * -s:                                    File Options.        (line  31)
 * -stack-info-depth:                     GDB/MI Stack Manipulation.
                                                               (line  35)
@@ -1340,6 +2051,12 @@ Index
                                                               (line  98)
 * -target-exec-status:                   GDB/MI Target Manipulation.
                                                               (line 201)
+* -target-file-delete:                   GDB/MI File Transfer Commands.
+                                                              (line  57)
+* -target-file-get:                      GDB/MI File Transfer Commands.
+                                                              (line  33)
+* -target-file-put:                      GDB/MI File Transfer Commands.
+                                                              (line   9)
 * -target-list-available-targets:        GDB/MI Target Manipulation.
                                                               (line 222)
 * -target-list-current-targets:          GDB/MI Target Manipulation.
@@ -1385,7 +2102,7 @@ Index
 * -var-update:                           GDB/MI Variable Objects.
                                                               (line 328)
 * -w:                                    Mode Options.        (line  76)
-* -x:                                    File Options.        (line  55)
+* -x:                                    File Options.        (line  51)
 * ., Modula-2 scope operator:            M2 Scope.            (line   6)
 * .build-id directory:                   Separate Debug Files.
                                                               (line   6)
@@ -1393,9 +2110,9 @@ Index
                                                               (line   6)
 * .gdbinit:                              Startup.             (line  37)
 * .gnu_debuglink sections:               Separate Debug Files.
-                                                              (line  75)
+                                                              (line  77)
 * .note.gnu.build-id sections:           Separate Debug Files.
-                                                              (line  93)
+                                                              (line  95)
 * .o files, reading symbols from:        Files.               (line 132)
 * /proc:                                 SVR4 Process Information.
                                                               (line   6)
@@ -1449,7 +2166,7 @@ Index
                                                               (line  12)
 * ADP (Angel Debugger Protocol) logging: ARM.                 (line  70)
 * advance LOCATION:                      Continuing and Stepping.
-                                                              (line 181)
+                                                              (line 180)
 * aggregates (Ada):                      Omissions from Ada.  (line  44)
 * AIX threads:                           Debugging Output.    (line  28)
 * alignment of remote memory accesses:   Packets.             (line 172)
@@ -1465,11 +2182,12 @@ Index
 * annotations for source display:        Source Annotations.  (line   6)
 * append:                                Dump/Restore Files.  (line  35)
 * append data to a file:                 Dump/Restore Files.  (line   6)
-* apply command to several threads:      Threads.             (line 143)
+* apply command to several threads:      Threads.             (line 146)
 * apropos:                               Help.                (line  62)
 * architecture debugging info:           Debugging Output.    (line  18)
 * argument count in user-defined commands: Define.            (line  25)
 * arguments (to your program):           Arguments.           (line   6)
+* arguments, to gdbserver:               Server.              (line  34)
 * arguments, to user-defined commands:   Define.              (line   6)
 * ARM 32-bit mode:                       ARM.                 (line  25)
 * ARM RDI:                               ARM.                 (line   6)
@@ -1478,22 +2196,22 @@ Index
 * arrays in expressions:                 Expressions.         (line  14)
 * artificial array:                      Arrays.              (line   6)
 * ASCII character set:                   Character Sets.      (line  65)
-* assembly instructions:                 Machine Code.        (line  36)
+* assembly instructions:                 Machine Code.        (line  35)
 * assf:                                  Files.               (line 172)
 * assignment:                            Assignment.          (line   6)
 * async output in GDB/MI:                GDB/MI Output Syntax.
                                                               (line  96)
-* AT&T disassembly flavor:               Machine Code.        (line  68)
+* AT&T disassembly flavor:               Machine Code.        (line  67)
 * attach:                                Attach.              (line   6)
-* attach to a program by name:           Server.              (line  70)
+* attach to a program by name:           Server.              (line  79)
 * automatic display:                     Auto Display.        (line   6)
-* automatic hardware breakpoints:        Set Breaks.          (line 241)
+* automatic hardware breakpoints:        Set Breaks.          (line 269)
 * automatic overlay debugging:           Automatic Overlay Debugging.
                                                               (line   6)
-* automatic thread selection:            Threads.             (line 152)
+* automatic thread selection:            Threads.             (line 169)
 * auxiliary vector:                      OS Information.      (line  21)
 * AVR:                                   AVR.                 (line   6)
-* awatch:                                Set Watchpoints.     (line  45)
+* awatch:                                Set Watchpoints.     (line  51)
 * b (break):                             Set Breaks.          (line   6)
 * B packet:                              Packets.             (line  68)
 * b packet:                              Packets.             (line  53)
@@ -1510,7 +2228,7 @@ Index
 * baud rate for remote targets:          Remote Configuration.
                                                               (line  21)
 * bcache statistics:                     Maintenance Commands.
-                                                              (line 161)
+                                                              (line 166)
 * beginning-of-history (M-<):            Commands For History.
                                                               (line  19)
 * beginning-of-line (C-a):               Commands For Moving. (line   6)
@@ -1526,7 +2244,7 @@ Index
 * break in overloaded functions:         Debugging C Plus Plus.
                                                               (line   9)
 * break on fork/exec:                    Set Catchpoints.     (line  33)
-* break on load/unload of shared library: Set Catchpoints.    (line  44)
+* break on load/unload of shared library: Set Catchpoints.    (line  46)
 * BREAK signal instead of Ctrl-C:        Remote Configuration.
                                                               (line  29)
 * break, and Objective-C:                Method Names in Commands.
@@ -1549,7 +2267,7 @@ Index
                                                               (line   6)
 * breakpoints:                           Breakpoints.         (line   6)
 * breakpoints and threads:               Thread Stops.        (line  10)
-* breakpoints in functions matching a regexp: Set Breaks.     (line 111)
+* breakpoints in functions matching a regexp: Set Breaks.     (line  87)
 * breakpoints in overlays:               Overlay Commands.    (line  93)
 * breakpoints-invalid annotation:        Invalidation.        (line  13)
 * bt (backtrace):                        Backtrace.           (line  11)
@@ -1557,7 +2275,7 @@ Index
 * bug reports:                           Bug Reporting.       (line   6)
 * bugs in GDB:                           GDB Bugs.            (line   6)
 * build ID sections:                     Separate Debug Files.
-                                                              (line  93)
+                                                              (line  95)
 * build ID, and separate debugging files: Separate Debug Files.
                                                               (line   6)
 * building GDB, requirements for:        Requirements.        (line   6)
@@ -1579,7 +2297,7 @@ Index
                                                               (line  19)
 * C++ overload debugging info:           Debugging Output.    (line  80)
 * C++ scope resolution:                  Variables.           (line  54)
-* C++ symbol decoding style:             Print Settings.      (line 255)
+* C++ symbol decoding style:             Print Settings.      (line 294)
 * C++ symbol display:                    Debugging C Plus Plus.
                                                               (line  28)
 * C-L:                                   TUI Keys.            (line  65)
@@ -1634,7 +2352,7 @@ Index
                                                               (line   6)
 * close, file-i/o system call:           close.               (line   6)
 * closest symbol and offset for an address: Symbols.          (line  54)
-* code address and its source line:      Machine Code.        (line  25)
+* code address and its source line:      Machine Code.        (line  24)
 * collect (tracepoints):                 Tracepoint Actions.  (line  45)
 * collected data discarded:              Starting and Stopping Trace Experiments.
                                                               (line   6)
@@ -1685,7 +2403,7 @@ Index
                                                               (line  15)
 * continuing:                            Continuing and Stepping.
                                                               (line   6)
-* continuing threads:                    Thread Stops.        (line  69)
+* continuing threads:                    Thread Stops.        (line  70)
 * control C, and remote debugging:       Bootstrapping.       (line  25)
 * controlling terminal:                  Input/Output.        (line  23)
 * convenience variables:                 Convenience Vars.    (line   6)
@@ -1713,13 +2431,13 @@ Index
 * Ctrl-o (operate-and-get-next):         Command Syntax.      (line  42)
 * current directory:                     Source Path.         (line  99)
 * current stack frame:                   Frames.              (line  45)
-* current thread:                        Threads.             (line  38)
+* current thread:                        Threads.             (line  41)
 * current thread, remote request:        General Query Packets.
                                                               (line  41)
 * cwd:                                   Source Path.         (line  99)
 * Cygwin DLL, debugging:                 Cygwin Native.       (line  30)
 * Cygwin-specific commands:              Cygwin Native.       (line   6)
-* d (delete):                            Delete Breaks.       (line  36)
+* d (delete):                            Delete Breaks.       (line  41)
 * d (SingleKey TUI key):                 TUI Single Key Mode. (line  13)
 * D packet:                              Packets.             (line  92)
 * d packet:                              Packets.             (line  86)
@@ -1730,7 +2448,7 @@ Index
 * debug formats and C++:                 C Plus Plus Expressions.
                                                               (line   8)
 * debug link sections:                   Separate Debug Files.
-                                                              (line  75)
+                                                              (line  77)
 * debug remote protocol:                 Debugging Output.    (line  86)
 * debug_chaos:                           M32R/D.              (line  50)
 * debugger crash:                        Bug Criteria.        (line   9)
@@ -1741,20 +2459,22 @@ Index
 * debugging information in separate files: Separate Debug Files.
                                                               (line   6)
 * debugging multiple processes:          Processes.           (line  52)
-* debugging multithreaded programs (on HP-UX): Threads.       (line  82)
+* debugging multithreaded programs (on HP-UX): Threads.       (line  85)
 * debugging optimized code:              Compilation.         (line  26)
 * debugging stub, example:               Remote Stub.         (line   6)
 * debugging target:                      Targets.             (line   6)
 * debugging the Cygwin DLL:              Cygwin Native.       (line  30)
-* default system root:                   Files.               (line 378)
+* decimal floating point format:         Decimal Floating Point.
+                                                              (line   6)
+* default system root:                   Files.               (line 381)
 * define:                                Define.              (line  37)
 * defining macros interactively:         Macros.              (line  54)
 * definition, showing a macro's:         Macros.              (line  50)
-* delete:                                Delete Breaks.       (line  36)
-* delete breakpoints:                    Delete Breaks.       (line  36)
+* delete:                                Delete Breaks.       (line  41)
+* delete breakpoints:                    Delete Breaks.       (line  41)
 * delete checkpoint CHECKPOINT-ID:       Checkpoint/Restart.  (line  56)
 * delete display:                        Auto Display.        (line  45)
-* delete fork FORK-ID:                   Processes.           (line 100)
+* delete fork FORK-ID:                   Processes.           (line 105)
 * delete mem:                            Memory Region Attributes.
                                                               (line  34)
 * delete tracepoint:                     Create and Delete Tracepoints.
@@ -1767,14 +2487,14 @@ Index
 * deleting breakpoints, watchpoints, catchpoints: Delete Breaks.
                                                               (line   6)
 * deliver a signal to a program:         Signaling.           (line   6)
-* demangling C++ names:                  Print Settings.      (line 236)
+* demangling C++ names:                  Print Settings.      (line 275)
 * deprecated commands:                   Maintenance Commands.
                                                               (line  60)
-* derived type of an object, printing:   Print Settings.      (line 288)
+* derived type of an object, printing:   Print Settings.      (line 327)
 * descriptor tables display:             DJGPP Native.        (line  24)
 * detach:                                Attach.              (line  36)
 * detach (remote):                       Connecting.          (line  90)
-* detach fork FORK-ID:                   Processes.           (line  95)
+* detach fork FORK-ID:                   Processes.           (line 100)
 * detach from task, GNU Hurd:            Hurd Native.         (line  60)
 * detach from thread, GNU Hurd:          Hurd Native.         (line 110)
 * digit-argument (M-0, M-1, ... M--):    Numeric Arguments.   (line   6)
@@ -1784,8 +2504,8 @@ Index
 * directory:                             Source Path.         (line  39)
 * directory, compilation:                Source Path.         (line  99)
 * directory, current:                    Source Path.         (line  99)
-* dis (disable):                         Disabling.           (line  35)
-* disable:                               Disabling.           (line  35)
+* dis (disable):                         Disabling.           (line  38)
+* disable:                               Disabling.           (line  38)
 * disable display:                       Auto Display.        (line  52)
 * disable mem:                           Memory Region Attributes.
                                                               (line  38)
@@ -1793,11 +2513,11 @@ Index
                                                               (line   6)
 * disable-completion:                    Readline Init File Syntax.
                                                               (line  73)
-* disassemble:                           Machine Code.        (line  36)
+* disassemble:                           Machine Code.        (line  35)
 * disconnect:                            Connecting.          (line  97)
 * display:                               Auto Display.        (line  23)
 * display command history:               Command History.     (line  78)
-* display derived types:                 Print Settings.      (line 288)
+* display derived types:                 Print Settings.      (line 327)
 * display disabled out of scope:         Auto Display.        (line  74)
 * display GDB copyright:                 Help.                (line 136)
 * display of expressions:                Auto Display.        (line   6)
@@ -1808,6 +2528,7 @@ Index
 * DLLs with no debugging symbols:        Non-debug DLL Symbols.
                                                               (line   6)
 * do (down):                             Selection.           (line  40)
+* do not print frame argument values:    Print Settings.      (line 135)
 * do-uppercase-version (M-a, M-b, M-X, ...): Miscellaneous Commands.
                                                               (line  14)
 * document:                              Define.              (line  46)
@@ -1838,7 +2559,7 @@ Index
                                                               (line  67)
 * dump/restore files:                    Dump/Restore Files.  (line   6)
 * DWARF 2 compilation units cache:       Maintenance Commands.
-                                                              (line 197)
+                                                              (line 202)
 * DWARF-2 CFI and CRIS:                  CRIS.                (line  18)
 * dynamic linking:                       Files.               (line 113)
 * e (edit):                              Edit.                (line   6)
@@ -1851,12 +2572,12 @@ Index
 * editing source files:                  Edit.                (line   6)
 * editing-mode:                          Readline Init File Syntax.
                                                               (line  78)
-* eight-bit characters in strings:       Print Settings.      (line 181)
+* eight-bit characters in strings:       Print Settings.      (line 220)
 * elaboration phase:                     Starting.            (line  82)
 * else:                                  Command Files.       (line  56)
 * Emacs:                                 Emacs.               (line   6)
-* empty response, for unsupported packets: Overview.          (line  86)
-* enable:                                Disabling.           (line  42)
+* empty response, for unsupported packets: Overview.          (line  90)
+* enable:                                Disabling.           (line  45)
 * enable display:                        Auto Display.        (line  57)
 * enable mem:                            Memory Region Attributes.
                                                               (line  42)
@@ -1893,6 +2614,8 @@ Index
 * exec-file:                             Files.               (line  39)
 * executable file:                       Files.               (line  16)
 * executable file target:                Target Commands.     (line  50)
+* executable file, for remote target:    Remote Configuration.
+                                                              (line  79)
 * execute commands from a file:          Command Files.       (line  14)
 * execute remote command, remote request: General Query Packets.
                                                               (line 203)
@@ -1926,6 +2649,8 @@ Index
 * fg (resume foreground execution):      Continuing and Stepping.
                                                               (line  15)
 * file:                                  Files.               (line  16)
+* file transfer:                         File Transfer.       (line   6)
+* file transfer, remote protocol:        Host I/O Packets.    (line   6)
 * file-i/o examples:                     File-I/O Examples.   (line   6)
 * file-i/o overview:                     File-I/O Overview.   (line   6)
 * File-I/O remote protocol extension:    File-I/O Remote Protocol Extension.
@@ -1945,9 +2670,9 @@ Index
 * floating point, MIPS remote:           MIPS Embedded.       (line  60)
 * flush_i_cache:                         Bootstrapping.       (line  60)
 * flushregs:                             Maintenance Commands.
-                                                              (line 153)
+                                                              (line 158)
 * focus:                                 TUI Commands.        (line  34)
-* focus of debugging:                    Threads.             (line  38)
+* focus of debugging:                    Threads.             (line  41)
 * foo:                                   Symbol Errors.       (line  50)
 * fork FORK-ID:                          Processes.           (line  85)
 * fork, debugging programs which call:   Processes.           (line   6)
@@ -1976,7 +2701,7 @@ Index
 * free memory information (MS-DOS):      DJGPP Native.        (line  19)
 * fstat, file-i/o system call:           stat/fstat.          (line   6)
 * Fujitsu:                               Remote Stub.         (line  69)
-* full symbol tables, listing GDB's internal: Symbols.        (line 269)
+* full symbol tables, listing GDB's internal: Symbols.        (line 270)
 * function call arguments, optimized out: Backtrace.          (line  65)
 * function entry/exit, wrong values of variables: Variables.  (line  58)
 * functions without line info, and stepping: Continuing and Stepping.
@@ -2018,6 +2743,7 @@ Index
 * gdbarch debugging info:                Debugging Output.    (line  18)
 * GDBHISTFILE, environment variable:     Command History.     (line  26)
 * gdbserver:                             Server.              (line   6)
+* gdbserver, multiple processes:         Server.              (line  91)
 * GDT:                                   DJGPP Native.        (line  24)
 * generate-core-file:                    Core File Generation.
                                                               (line  18)
@@ -2032,16 +2758,16 @@ Index
 * GNU Hurd debugging:                    Hurd Native.         (line   6)
 * GNU/Linux LWP debug messages:          Debugging Output.    (line  66)
 * gnu_debuglink_crc32:                   Separate Debug Files.
-                                                              (line 139)
+                                                              (line 144)
 * h (help):                              Help.                (line   9)
 * H packet:                              Packets.             (line 135)
 * handle:                                Signals.             (line  45)
 * handle_exception:                      Stub Contents.       (line  15)
 * handling signals:                      Signals.             (line  27)
-* hardware breakpoints:                  Set Breaks.          (line  81)
+* hardware breakpoints:                  Set Breaks.          (line  57)
 * hardware watchpoints:                  Set Watchpoints.     (line  22)
 * hash mark while downloading:           Target Commands.     (line  99)
-* hbreak:                                Set Breaks.          (line  81)
+* hbreak:                                Set Breaks.          (line  57)
 * help:                                  Help.                (line   6)
 * help target:                           Target Commands.     (line  19)
 * help user-defined:                     Define.              (line  63)
@@ -2069,6 +2795,7 @@ Index
 * horizontal-scroll-mode:                Readline Init File Syntax.
                                                               (line  98)
 * host character set:                    Character Sets.      (line   6)
+* Host I/O, remote protocol:             Host I/O Packets.    (line   6)
 * how many arguments (user-defined commands): Define.         (line  25)
 * HPPA support:                          HPPA.                (line   6)
 * htrace:                                OpenRISC 1000.       (line  69)
@@ -2087,7 +2814,7 @@ Index
 * ignore count (of breakpoint):          Conditions.          (line  66)
 * INCLUDE_RDB:                           VxWorks.             (line  33)
 * incomplete type:                       Symbols.             (line  99)
-* indentation in structure display:      Print Settings.      (line 157)
+* indentation in structure display:      Print Settings.      (line 196)
 * inferior debugging info:               Debugging Output.    (line  57)
 * inferior functions, calling:           Calling.             (line   6)
 * inferior tty:                          Input/Output.        (line  44)
@@ -2097,10 +2824,10 @@ Index
 * info all-registers:                    Registers.           (line  15)
 * info args:                             Frame Info.          (line  51)
 * info auxv:                             OS Information.      (line  33)
-* info breakpoints:                      Set Breaks.          (line 136)
+* info breakpoints:                      Set Breaks.          (line 112)
 * info catch:                            Frame Info.          (line  60)
 * info checkpoints:                      Checkpoint/Restart.  (line  31)
-* info classes:                          Symbols.             (line 196)
+* info classes:                          Symbols.             (line 197)
 * info common:                           Special Fortran Commands.
                                                               (line   9)
 * info copying:                          Help.                (line 136)
@@ -2114,11 +2841,11 @@ Index
 * info float:                            Floating Point Hardware.
                                                               (line   9)
 * info for known object files:           Maintenance Commands.
-                                                              (line 156)
+                                                              (line 161)
 * info forks:                            Processes.           (line  80)
 * info frame:                            Frame Info.          (line  17)
 * info frame, show the source language:  Show.                (line  15)
-* info functions:                        Symbols.             (line 175)
+* info functions:                        Symbols.             (line 176)
 * info handle:                           Signals.             (line  33)
 * info io_registers, AVR:                AVR.                 (line  10)
 * info line:                             Machine Code.        (line  13)
@@ -2138,31 +2865,31 @@ Index
 * info program:                          Stopping.            (line  18)
 * info registers:                        Registers.           (line  11)
 * info scope:                            Symbols.             (line 130)
-* info selectors:                        Symbols.             (line 202)
+* info selectors:                        Symbols.             (line 203)
 * info serial:                           DJGPP Native.        (line 142)
 * info set:                              Help.                (line 119)
-* info share:                            Files.               (line 323)
-* info sharedlibrary:                    Files.               (line 323)
+* info share:                            Files.               (line 326)
+* info sharedlibrary:                    Files.               (line 326)
 * info signals:                          Signals.             (line  33)
-* info source:                           Symbols.             (line 150)
+* info source:                           Symbols.             (line 151)
 * info source, show the source language: Show.                (line  21)
-* info sources:                          Symbols.             (line 169)
+* info sources:                          Symbols.             (line 170)
 * info spu:                              SPU.                 (line  10)
 * info stack:                            Backtrace.           (line  34)
 * info symbol:                           Symbols.             (line  54)
 * info target:                           Files.               (line 191)
 * info terminal:                         Input/Output.        (line  12)
-* info threads:                          Threads.             (line  59)
-* info threads (HP-UX):                  Threads.             (line  96)
+* info threads:                          Threads.             (line  62)
+* info threads (HP-UX):                  Threads.             (line  99)
 * info tp:                               Listing Tracepoints. (line   6)
 * info tracepoints:                      Listing Tracepoints. (line   6)
 * info types:                            Symbols.             (line 116)
 * info udot:                             OS Information.      (line  16)
-* info variables:                        Symbols.             (line 187)
+* info variables:                        Symbols.             (line 188)
 * info vector:                           Vector Unit.         (line   9)
 * info w32:                              Cygwin Native.       (line  12)
 * info warranty:                         Help.                (line 140)
-* info watchpoints [N]:                  Set Watchpoints.     (line  49)
+* info watchpoints [N]:                  Set Watchpoints.     (line  55)
 * info win:                              TUI Commands.        (line  12)
 * information about tracepoints:         Listing Tracepoints. (line   6)
 * inheritance:                           Debugging C Plus Plus.
@@ -2182,16 +2909,16 @@ Index
                                                               (line  14)
 * inspect:                               Data.                (line   6)
 * installation:                          Installing GDB.      (line   6)
-* instructions, assembly:                Machine Code.        (line  36)
+* instructions, assembly:                Machine Code.        (line  35)
 * integral datatypes, in file-i/o protocol: Integral Datatypes.
                                                               (line   6)
 * Intel:                                 Remote Stub.         (line  57)
-* Intel disassembly flavor:              Machine Code.        (line  68)
+* Intel disassembly flavor:              Machine Code.        (line  67)
 * interaction, readline:                 Readline Interaction.
                                                               (line   6)
 * internal commands:                     Maintenance Commands.
                                                               (line   6)
-* internal GDB breakpoints:              Set Breaks.          (line 261)
+* internal GDB breakpoints:              Set Breaks.          (line 289)
 * interpreter-exec:                      Interpreters.        (line  43)
 * interrupt:                             Quitting GDB.        (line  13)
 * interrupt remote programs:             Remote Configuration.
@@ -2247,7 +2974,7 @@ Index
                                                               (line  72)
 * limit on number of printed array elements: Print Settings.  (line 123)
 * limits, in file-i/o protocol:          Limits.              (line   6)
-* linespec:                              List.                (line  45)
+* linespec:                              Specify Location.    (line   6)
 * Linux lightweight processes:           Debugging Output.    (line  66)
 * list:                                  List.                (line   6)
 * list active threads, remote request:   General Query Packets.
@@ -2258,17 +2985,17 @@ Index
                                                               (line 115)
 * list, and Objective-C:                 Method Names in Commands.
                                                               (line   9)
-* list, how many lines to display:       List.                (line  29)
-* listing GDB's internal symbol tables:  Symbols.             (line 269)
-* listing machine instructions:          Machine Code.        (line  36)
+* list, how many lines to display:       List.                (line  30)
+* listing GDB's internal symbol tables:  Symbols.             (line 270)
+* listing machine instructions:          Machine Code.        (line  35)
 * listing mapped overlays:               Overlay Commands.    (line  60)
 * load address, overlay's:               How Overlays Work.   (line   6)
 * load FILENAME:                         Target Commands.     (line 115)
-* load shared library:                   Files.               (line 320)
+* load shared library:                   Files.               (line 323)
 * load symbols from memory:              Files.               (line 162)
 * local variables:                       Symbols.             (line 130)
 * locate address:                        Output Formats.      (line  35)
-* lock scheduler:                        Thread Stops.        (line  89)
+* lock scheduler:                        Thread Stops.        (line  90)
 * log output in GDB/MI:                  GDB/MI Output Syntax.
                                                               (line 111)
 * logging file name:                     Logging Output.      (line  13)
@@ -2283,7 +3010,7 @@ Index
 * M32R/Chaos debugging:                  M32R/D.              (line  50)
 * m680x0:                                Remote Stub.         (line  60)
 * m68k-stub.c:                           Remote Stub.         (line  60)
-* machine instructions:                  Machine Code.        (line  36)
+* machine instructions:                  Machine Code.        (line  35)
 * macro define:                          Macros.              (line  54)
 * macro definition, showing:             Macros.              (line  50)
 * macro exp1:                            Macros.              (line  39)
@@ -2312,10 +3039,10 @@ Index
                                                               (line  68)
 * maint info breakpoints:                Maintenance Commands.
                                                               (line  17)
-* maint info psymtabs:                   Symbols.             (line 269)
+* maint info psymtabs:                   Symbols.             (line 270)
 * maint info sections:                   Files.               (line 200)
-* maint info sol-threads:                Threads.             (line 126)
-* maint info symtabs:                    Symbols.             (line 269)
+* maint info sol-threads:                Threads.             (line 129)
+* maint info symtabs:                    Symbols.             (line 270)
 * maint internal-error:                  Maintenance Commands.
                                                               (line  73)
 * maint internal-warning:                Maintenance Commands.
@@ -2324,45 +3051,47 @@ Index
                                                               (line  94)
 * maint print architecture:              Maintenance Commands.
                                                               (line 100)
-* maint print cooked-registers:          Maintenance Commands.
-                                                              (line 122)
-* maint print dummy-frames:              Maintenance Commands.
+* maint print c-tdesc:                   Maintenance Commands.
                                                               (line 104)
+* maint print cooked-registers:          Maintenance Commands.
+                                                              (line 127)
+* maint print dummy-frames:              Maintenance Commands.
+                                                              (line 109)
 * maint print objfiles:                  Maintenance Commands.
-                                                              (line 156)
-* maint print psymbols:                  Symbols.             (line 250)
-* maint print raw-registers:             Maintenance Commands.
-                                                              (line 122)
-* maint print reggroups:                 Maintenance Commands.
-                                                              (line 137)
-* maint print register-groups:           Maintenance Commands.
-                                                              (line 122)
-* maint print registers:                 Maintenance Commands.
-                                                              (line 122)
-* maint print statistics:                Maintenance Commands.
                                                               (line 161)
-* maint print symbols:                   Symbols.             (line 250)
+* maint print psymbols:                  Symbols.             (line 251)
+* maint print raw-registers:             Maintenance Commands.
+                                                              (line 127)
+* maint print reggroups:                 Maintenance Commands.
+                                                              (line 142)
+* maint print register-groups:           Maintenance Commands.
+                                                              (line 127)
+* maint print registers:                 Maintenance Commands.
+                                                              (line 127)
+* maint print statistics:                Maintenance Commands.
+                                                              (line 166)
+* maint print symbols:                   Symbols.             (line 251)
 * maint print target-stack:              Maintenance Commands.
-                                                              (line 174)
+                                                              (line 179)
 * maint print type:                      Maintenance Commands.
-                                                              (line 186)
+                                                              (line 191)
 * maint print unwind, HPPA:              HPPA.                (line  17)
 * maint set dwarf2 max-cache-age:        Maintenance Commands.
-                                                              (line 193)
+                                                              (line 198)
 * maint set profile:                     Maintenance Commands.
-                                                              (line 207)
+                                                              (line 212)
 * maint show dwarf2 max-cache-age:       Maintenance Commands.
-                                                              (line 193)
+                                                              (line 198)
 * maint show profile:                    Maintenance Commands.
-                                                              (line 207)
+                                                              (line 212)
 * maint show-debug-regs:                 Maintenance Commands.
-                                                              (line 223)
+                                                              (line 228)
 * maint space:                           Maintenance Commands.
-                                                              (line 230)
+                                                              (line 235)
 * maint time:                            Maintenance Commands.
-                                                              (line 237)
+                                                              (line 242)
 * maint translate-address:               Maintenance Commands.
-                                                              (line 244)
+                                                              (line 249)
 * maint undeprecate:                     Maintenance Commands.
                                                               (line  60)
 * maintenance commands:                  Maintenance Commands.
@@ -2393,8 +3122,8 @@ Index
 * memory tracing:                        Breakpoints.         (line  20)
 * memory transfer, in file-i/o protocol: Memory Transfer.     (line   6)
 * memory used by commands:               Maintenance Commands.
-                                                              (line 230)
-* memory used for symbol tables:         Files.               (line 308)
+                                                              (line 235)
+* memory used for symbol tables:         Files.               (line 311)
 * memory, alignment and size of remote accesses: Packets.     (line 172)
 * memory, viewing as typed object:       Expressions.         (line  42)
 * memset:                                Bootstrapping.       (line  70)
@@ -2418,19 +3147,20 @@ Index
 * Modula-2:                              Summary.             (line  27)
 * Modula-2 built-ins:                    Built-In Func/Proc.  (line   6)
 * Modula-2 checks:                       M2 Checks.           (line   6)
-* Modula-2 constants:                    Built-In Func/Proc.  (line 109)
+* Modula-2 constants:                    Built-In Func/Proc.  (line 112)
 * Modula-2 defaults:                     M2 Defaults.         (line   6)
 * Modula-2 operators:                    M2 Operators.        (line   6)
 * Modula-2 types:                        M2 Types.            (line   6)
 * Modula-2, deviations from:             Deviations.          (line   6)
 * Modula-2, GDB support:                 Modula-2.            (line   6)
 * monitor:                               Connecting.          (line 104)
-* monitor commands, for gdbserver:       Server.              (line 105)
+* monitor commands, for gdbserver:       Server.              (line 149)
 * Motorola 680x0:                        Remote Stub.         (line  60)
 * MS Windows debugging:                  Cygwin Native.       (line   6)
 * MS-DOS system info:                    DJGPP Native.        (line  19)
 * MS-DOS-specific commands:              DJGPP Native.        (line   6)
 * multiple processes:                    Processes.           (line   6)
+* multiple processes with gdbserver:     Server.              (line  91)
 * multiple targets:                      Active Targets.      (line   6)
 * multiple threads:                      Threads.             (line   6)
 * multiple threads, backtrace:           Backtrace.           (line  37)
@@ -2442,48 +3172,47 @@ Index
                                                               (line  22)
 * native Cygwin debugging:               Cygwin Native.       (line   6)
 * native DJGPP debugging:                DJGPP Native.        (line   6)
-* negative breakpoint numbers:           Set Breaks.          (line 261)
+* negative breakpoint numbers:           Set Breaks.          (line 289)
 * NetROM ROM emulator target:            Target Commands.     (line  88)
-* New SYSTAG message:                    Threads.             (line  44)
-* New SYSTAG message, on HP-UX:          Threads.             (line  86)
+* New SYSTAG message:                    Threads.             (line  47)
+* New SYSTAG message, on HP-UX:          Threads.             (line  89)
 * next:                                  Continuing and Stepping.
                                                               (line  78)
 * next-history (C-n):                    Commands For History.
                                                               (line  16)
 * nexti:                                 Continuing and Stepping.
-                                                              (line 203)
+                                                              (line 202)
 * ni (nexti):                            Continuing and Stepping.
-                                                              (line 203)
+                                                              (line 202)
 * non-incremental-forward-search-history (M-n): Commands For History.
                                                               (line  40)
 * non-incremental-reverse-search-history (M-p): Commands For History.
                                                               (line  35)
-* non-member C++ functions, set breakpoint in: Set Breaks.    (line 127)
+* non-member C++ functions, set breakpoint in: Set Breaks.    (line 103)
 * noninvasive task options:              Hurd Native.         (line  73)
-* nosharedlibrary:                       Files.               (line 336)
+* nosharedlibrary:                       Files.               (line 339)
 * notation, readline:                    Readline Bare Essentials.
                                                               (line   6)
 * notational conventions, for GDB/MI:    GDB/MI.              (line  25)
 * notify output in GDB/MI:               GDB/MI Output Syntax.
                                                               (line 100)
-* NULL elements in arrays:               Print Settings.      (line 148)
+* NULL elements in arrays:               Print Settings.      (line 187)
 * number of array elements to print:     Print Settings.      (line 123)
 * number representation:                 Numbers.             (line   6)
 * numbers for breakpoints:               Breakpoints.         (line  41)
 * object files, relocatable, reading symbols from: Files.     (line 132)
 * Objective-C:                           Objective-C.         (line   6)
-* Objective-C, classes and selectors:    Symbols.             (line 196)
+* Objective-C, classes and selectors:    Symbols.             (line 197)
 * Objective-C, print objects:            The Print Command with Objective-C.
                                                               (line   6)
 * observer debugging info:               Debugging Output.    (line  73)
-* octal escapes in strings:              Print Settings.      (line 181)
+* octal escapes in strings:              Print Settings.      (line 220)
 * online documentation:                  Help.                (line   6)
-* opaque data types:                     Symbols.             (line 232)
+* opaque data types:                     Symbols.             (line 233)
 * open flags, in file-i/o protocol:      Open Flags.          (line   6)
 * open, file-i/o system call:            open.                (line   6)
 * OpenRISC 1000:                         OpenRISC 1000.       (line   6)
 * OpenRISC 1000 htrace:                  OpenRISC 1000.       (line  58)
-* operations allowed on pending breakpoints: Set Breaks.      (line 228)
 * optimized code, debugging:             Compilation.         (line  26)
 * optimized code, wrong values of variables: Variables.       (line  58)
 * optional debugging messages:           Debugging Output.    (line   6)
@@ -2525,10 +3254,10 @@ Index
 * page tables display (MS-DOS):          DJGPP Native.        (line  56)
 * page-completions:                      Readline Init File Syntax.
                                                               (line 154)
-* partial symbol dump:                   Symbols.             (line 250)
-* partial symbol tables, listing GDB's internal: Symbols.     (line 269)
+* partial symbol dump:                   Symbols.             (line 251)
+* partial symbol tables, listing GDB's internal: Symbols.     (line 270)
 * Pascal:                                Summary.             (line  30)
-* Pascal objects, static members display: Print Settings.     (line 312)
+* Pascal objects, static members display: Print Settings.     (line 351)
 * Pascal support in GDB, limitations:    Pascal.              (line   6)
 * pass signals to inferior, remote request: General Query Packets.
                                                               (line 175)
@@ -2540,7 +3269,7 @@ Index
 * pause current task (GNU Hurd):         Hurd Native.         (line  49)
 * pause current thread (GNU Hurd):       Hurd Native.         (line  91)
 * pauses in output:                      Screen Size.         (line   6)
-* pending breakpoints:                   Set Breaks.          (line 195)
+* pending breakpoints:                   Set Breaks.          (line 217)
 * PgDn:                                  TUI Keys.            (line  50)
 * PgUp:                                  TUI Keys.            (line  47)
 * physical address from linear address:  DJGPP Native.        (line  81)
@@ -2560,33 +3289,39 @@ Index
 * post-prompt annotation:                Prompting.           (line  24)
 * post-prompt-for-continue annotation:   Prompting.           (line  40)
 * post-query annotation:                 Prompting.           (line  36)
+* PowerPC architecture:                  PowerPC.             (line   6)
 * pre-commands annotation:               Prompting.           (line  27)
 * pre-overload-choice annotation:        Prompting.           (line  32)
 * pre-prompt annotation:                 Prompting.           (line  24)
 * pre-prompt-for-continue annotation:    Prompting.           (line  40)
 * pre-query annotation:                  Prompting.           (line  36)
-* prefix for shared library file names:  Files.               (line 366)
+* prefix for shared library file names:  Files.               (line 369)
 * prefix-meta (<ESC>):                   Miscellaneous Commands.
                                                               (line  18)
-* premature return from system calls:    Thread Stops.        (line  36)
+* premature return from system calls:    Thread Stops.        (line  37)
 * preprocessor macro expansion, showing the results of: Macros.
                                                               (line  32)
 * pretty print arrays:                   Print Settings.      (line  98)
-* pretty print C++ virtual function tables: Print Settings.   (line 323)
+* pretty print C++ virtual function tables: Print Settings.   (line 362)
 * previous-history (C-p):                Commands For History.
                                                               (line  12)
 * print:                                 Data.                (line   6)
+* print all frame argument values:       Print Settings.      (line 135)
 * print an Objective-C object description: The Print Command with Objective-C.
                                                               (line  11)
 * print array indexes:                   Print Settings.      (line 108)
+* print frame argument values for scalars only: Print Settings.
+                                                              (line 135)
+* print messages on thread start and exit: Threads.           (line 155)
 * print settings:                        Print Settings.      (line   6)
-* print structures in indented form:     Print Settings.      (line 157)
+* print structures in indented form:     Print Settings.      (line 196)
 * print-object:                          The Print Command with Objective-C.
                                                               (line   6)
 * print/don't print memory addresses:    Print Settings.      (line  13)
 * printf:                                Output.              (line  46)
 * printing byte arrays:                  Output Formats.      (line  60)
 * printing data:                         Data.                (line   6)
+* printing frame argument values:        Print Settings.      (line 135)
 * printing strings:                      Output Formats.      (line  60)
 * proc-trace-entry:                      SVR4 Process Information.
                                                               (line  70)
@@ -2604,12 +3339,13 @@ Index
                                                               (line   6)
 * process list, QNX Neutrino:            SVR4 Process Information.
                                                               (line  74)
+* process PROCESS-ID:                    Processes.           (line  90)
 * process status register:               Registers.           (line  26)
 * processes, multiple:                   Processes.           (line   6)
 * procfs API calls:                      SVR4 Process Information.
                                                               (line  53)
 * profiling GDB:                         Maintenance Commands.
-                                                              (line 207)
+                                                              (line 212)
 * program counter register:              Registers.           (line  26)
 * program entry point:                   Backtrace.           (line  87)
 * prompt:                                Prompt.              (line   6)
@@ -2665,10 +3401,10 @@ Index
 * r (SingleKey TUI key):                 TUI Single Key Mode. (line  25)
 * R packet:                              Packets.             (line 235)
 * r packet:                              Packets.             (line 230)
-* raise exceptions:                      Set Catchpoints.     (line  78)
+* raise exceptions:                      Set Catchpoints.     (line  80)
 * range checking:                        Type Checking.       (line  65)
 * ranges of breakpoints:                 Breakpoints.         (line  48)
-* rbreak:                                Set Breaks.          (line 111)
+* rbreak:                                Set Breaks.          (line  87)
 * RDI heartbeat:                         ARM.                 (line  93)
 * rdilogenable:                          ARM.                 (line  76)
 * rdilogfile:                            ARM.                 (line  70)
@@ -2699,20 +3435,23 @@ Index
 * register stack, AMD29K:                A29K.                (line   6)
 * registers:                             Registers.           (line   6)
 * regs, Super-H:                         Super-H.             (line   9)
-* regular expression:                    Set Breaks.          (line 111)
-* reloading symbols:                     Symbols.             (line 208)
+* regular expression:                    Set Breaks.          (line  87)
+* reloading symbols:                     Symbols.             (line 209)
 * reloading the overlay table:           Overlay Commands.    (line  52)
 * relocatable object files, reading symbols from: Files.      (line 132)
 * remote connection without stubs:       Server.              (line   6)
 * remote debugging:                      Remote Debugging.    (line   6)
+* remote delete:                         File Transfer.       (line  23)
+* remote get:                            File Transfer.       (line  19)
 * remote memory comparison:              Memory.              (line 105)
 * remote monitor prompt:                 MIPS Embedded.       (line 107)
 * remote packets, enabling and disabling: Remote Configuration.
-                                                              (line  77)
+                                                              (line  84)
 * remote programs, interrupting:         Connecting.          (line  77)
 * remote protocol debugging:             Debugging Output.    (line  86)
 * remote protocol, binary data:          Overview.            (line  55)
 * remote protocol, field separator:      Overview.            (line  47)
+* remote put:                            File Transfer.       (line  15)
 * remote query requests:                 General Query Packets.
                                                               (line   6)
 * remote serial debugging summary:       Debug Session.       (line   6)
@@ -2725,6 +3464,7 @@ Index
 * remote stub, example:                  Remote Stub.         (line   6)
 * remote stub, support routines:         Bootstrapping.       (line   6)
 * remote target:                         Target Commands.     (line  58)
+* remote target, file transfer:          File Transfer.       (line   6)
 * remote target, limit break- and watchpoints: Remote Configuration.
                                                               (line  72)
 * remote timeout:                        Remote Configuration.
@@ -2733,7 +3473,7 @@ Index
 * remove actions from a tracepoint:      Tracepoint Actions.  (line  17)
 * rename, file-i/o system call:          rename.              (line   6)
 * Renesas:                               Remote Stub.         (line  63)
-* repeated array elements:               Print Settings.      (line 135)
+* repeated array elements:               Print Settings.      (line 174)
 * repeating command sequences:           Command Syntax.      (line  42)
 * repeating commands:                    Command Syntax.      (line  21)
 * reporting bugs in GDB:                 GDB Bugs.            (line   6)
@@ -2769,23 +3509,23 @@ Index
                                                               (line   6)
 * running VxWorks tasks:                 VxWorks Attach.      (line   6)
 * running, on Sparclet:                  Sparclet.            (line  28)
-* rwatch:                                Set Watchpoints.     (line  41)
+* rwatch:                                Set Watchpoints.     (line  47)
 * s (SingleKey TUI key):                 TUI Single Key Mode. (line  28)
 * s (step):                              Continuing and Stepping.
                                                               (line  46)
-* S packet:                              Packets.             (line 247)
-* s packet:                              Packets.             (line 241)
+* S packet:                              Packets.             (line 248)
+* s packet:                              Packets.             (line 242)
 * save command history:                  Command History.     (line  36)
 * save GDB output to a file:             Logging Output.      (line   6)
 * save tracepoints for future sessions:  save-tracepoints.    (line   6)
 * save-tracepoints:                      save-tracepoints.    (line   6)
-* scheduler locking mode:                Thread Stops.        (line  89)
+* scheduler locking mode:                Thread Stops.        (line  90)
 * scope:                                 M2 Scope.            (line   6)
 * scripting commands:                    Command Files.       (line   6)
 * sdireset:                              M32R/D.              (line  44)
 * sdistatus:                             M32R/D.              (line  47)
-* SDS protocol:                          PowerPC.             (line  17)
-* sds, a command:                        PowerPC.             (line  28)
+* SDS protocol:                          PowerPC Embedded.    (line  34)
+* sds, a command:                        PowerPC Embedded.    (line  45)
 * search:                                Search.              (line   9)
 * searching source files:                Search.              (line   6)
 * section:                               Files.               (line 182)
@@ -2801,6 +3541,7 @@ Index
 * send command to simulator:             Embedded Processors. (line   9)
 * send PMON command:                     MIPS Embedded.       (line 132)
 * send rights, GNU Hurd:                 Hurd Native.         (line  85)
+* sending files to remote systems:       File Transfer.       (line   6)
 * separate debugging information files:  Separate Debug Files.
                                                               (line   6)
 * sequence-id, for GDB remote:           Overview.            (line  29)
@@ -2816,14 +3557,14 @@ Index
 * set architecture:                      Targets.             (line  21)
 * set args:                              Arguments.           (line  21)
 * set arm:                               ARM.                 (line  18)
-* set auto-solib-add:                    Files.               (line 300)
+* set auto-solib-add:                    Files.               (line 303)
 * set backtrace:                         Backtrace.           (line  98)
 * set board-address:                     M32R/D.              (line  21)
-* set breakpoint auto-hw:                Set Breaks.          (line 251)
-* set breakpoint pending:                Set Breaks.          (line 211)
-* set breakpoints in many functions:     Set Breaks.          (line 111)
-* set breakpoints on all functions:      Set Breaks.          (line 131)
-* set can-use-hw-watchpoints:            Set Watchpoints.     (line  68)
+* set breakpoint auto-hw:                Set Breaks.          (line 279)
+* set breakpoint pending:                Set Breaks.          (line 248)
+* set breakpoints in many functions:     Set Breaks.          (line  87)
+* set breakpoints on all functions:      Set Breaks.          (line 107)
+* set can-use-hw-watchpoints:            Set Watchpoints.     (line  74)
 * set case-sensitive:                    Symbols.             (line  27)
 * set charset:                           Character Sets.      (line  47)
 * set check range:                       Range Checking.      (line  34)
@@ -2847,14 +3588,14 @@ Index
 * set debug monitor:                     Target Commands.     (line 108)
 * set debug nto-debug:                   Neutrino.            (line   9)
 * set debug-file-directory:              Separate Debug Files.
-                                                              (line  66)
+                                                              (line  68)
 * set debugevents:                       Cygwin Native.       (line  59)
 * set debugexceptions:                   Cygwin Native.       (line  70)
 * set debugexec:                         Cygwin Native.       (line  66)
 * set debugmemory:                       Cygwin Native.       (line  74)
-* set demangle-style:                    Print Settings.      (line 255)
+* set demangle-style:                    Print Settings.      (line 294)
 * set detach-on-fork:                    Processes.           (line  55)
-* set disassembly-flavor:                Machine Code.        (line  68)
+* set disassembly-flavor:                Machine Code.        (line  67)
 * set download-path:                     M32R/D.              (line  15)
 * set editing:                           Editing.             (line  15)
 * set endian:                            Byte Order.          (line  13)
@@ -2875,7 +3616,7 @@ Index
 * set inferior-tty:                      Input/Output.        (line  49)
 * set input-radix:                       Numbers.             (line  14)
 * set language:                          Manually.            (line   9)
-* set listsize:                          List.                (line  32)
+* set listsize:                          List.                (line  33)
 * set logging:                           Logging Output.      (line   9)
 * set max-user-call-depth:               Define.              (line  73)
 * set mem inaccessible-by-default:       Memory Region Attributes.
@@ -2887,13 +3628,15 @@ Index
 * set monitor-warnings, MIPS remote:     MIPS Embedded.       (line 123)
 * set new-console:                       Cygwin Native.       (line  42)
 * set new-group:                         Cygwin Native.       (line  51)
-* set opaque-type-resolution:            Symbols.             (line 232)
+* set opaque-type-resolution:            Symbols.             (line 233)
 * set osabi:                             ABI.                 (line  11)
 * set output-radix:                      Numbers.             (line  31)
 * set overload-resolution:               Debugging C Plus Plus.
                                                               (line  47)
 * set pagination:                        Screen Size.         (line  38)
+* set powerpc:                           PowerPC Embedded.    (line   8)
 * set print:                             Print Settings.      (line  11)
+* set print thread-events:               Threads.             (line 155)
 * set processor:                         Targets.             (line  31)
 * set procfs-file:                       SVR4 Process Information.
                                                               (line  59)
@@ -2912,24 +3655,24 @@ Index
                                                               (line  41)
 * set retransmit-timeout:                MIPS Embedded.       (line  83)
 * set rstack_high_address:               A29K.                (line   6)
-* set sdstimeout:                        PowerPC.             (line  21)
+* set sdstimeout:                        PowerPC Embedded.    (line  38)
 * set server-address:                    M32R/D.              (line  27)
 * set shell:                             Cygwin Native.       (line  78)
 * set signal-thread:                     Hurd Native.         (line  21)
 * set signals, Hurd command:             Hurd Native.         (line  11)
 * set sigs, Hurd command:                Hurd Native.         (line  11)
 * set sigthread:                         Hurd Native.         (line  21)
-* set solib-absolute-prefix:             Files.               (line 366)
-* set solib-search-path:                 Files.               (line 387)
+* set solib-absolute-prefix:             Files.               (line 369)
+* set solib-search-path:                 Files.               (line 390)
 * set step-mode:                         Continuing and Stepping.
                                                               (line  92)
-* set stop-on-solib-events:              Files.               (line 346)
+* set stop-on-solib-events:              Files.               (line 349)
 * set stopped, Hurd command:             Hurd Native.         (line  32)
 * set struct-convention:                 i386.                (line   7)
 * set substitute-path:                   Source Path.         (line 114)
-* set symbol-reloading:                  Symbols.             (line 215)
+* set symbol-reloading:                  Symbols.             (line 216)
 * set syn-garbage-limit, MIPS remote:    MIPS Embedded.       (line  98)
-* set sysroot:                           Files.               (line 366)
+* set sysroot:                           Files.               (line 369)
 * set target-charset:                    Character Sets.      (line  28)
 * set task, Hurd commands:               Hurd Native.         (line  49)
 * set tdesc filename:                    Retrieving Descriptions.
@@ -2947,7 +3690,7 @@ Index
 * set variable:                          Assignment.          (line  16)
 * set verbose:                           Messages/Warnings.   (line  15)
 * set watchdog:                          Maintenance Commands.
-                                                              (line 257)
+                                                              (line 262)
 * set width:                             Screen Size.         (line  21)
 * set write:                             Patching.            (line  15)
 * set-mark (C-@):                        Miscellaneous Commands.
@@ -2957,10 +3700,10 @@ Index
 * setting watchpoints:                   Set Watchpoints.     (line   6)
 * SH:                                    Remote Stub.         (line  63)
 * sh-stub.c:                             Remote Stub.         (line  63)
-* share:                                 Files.               (line 327)
+* share:                                 Files.               (line 330)
 * shared libraries:                      Files.               (line 281)
 * shared library events, remote reply:   Stop Reply Packets.  (line  52)
-* sharedlibrary:                         Files.               (line 327)
+* sharedlibrary:                         Files.               (line 330)
 * shell:                                 Shell Commands.      (line  10)
 * shell escape:                          Shell Commands.      (line  10)
 * show:                                  Help.                (line 112)
@@ -2970,12 +3713,12 @@ Index
 * show architecture:                     Targets.             (line  21)
 * show args:                             Arguments.           (line  28)
 * show arm:                              ARM.                 (line  22)
-* show auto-solib-add:                   Files.               (line 317)
+* show auto-solib-add:                   Files.               (line 320)
 * show backtrace:                        Backtrace.           (line 105)
 * show board-address:                    M32R/D.              (line  24)
-* show breakpoint auto-hw:               Set Breaks.          (line 251)
-* show breakpoint pending:               Set Breaks.          (line 211)
-* show can-use-hw-watchpoints:           Set Watchpoints.     (line  71)
+* show breakpoint auto-hw:               Set Breaks.          (line 279)
+* show breakpoint pending:               Set Breaks.          (line 248)
+* show can-use-hw-watchpoints:           Set Watchpoints.     (line  77)
 * show case-sensitive:                   Symbols.             (line  40)
 * show charset:                          Character Sets.      (line  53)
 * show check range:                      Range Checking.      (line  34)
@@ -3001,10 +3744,10 @@ Index
 * show debug monitor:                    Target Commands.     (line 112)
 * show debug nto-debug:                  Neutrino.            (line  13)
 * show debug-file-directory:             Separate Debug Files.
-                                                              (line  70)
-* show detach-on-follow:                 Processes.           (line  71)
+                                                              (line  72)
+* show detach-on-fork:                   Processes.           (line  71)
 * show directories:                      Source Path.         (line 111)
-* show disassembly-flavor:               Machine Code.        (line  77)
+* show disassembly-flavor:               Machine Code.        (line  76)
 * show download-path:                    M32R/D.              (line  18)
 * show editing:                          Editing.             (line  22)
 * show environment:                      Environment.         (line  33)
@@ -3020,7 +3763,7 @@ Index
 * show input-radix:                      Numbers.             (line  36)
 * show language:                         Show.                (line  10)
 * show last commands:                    Command History.     (line  78)
-* show listsize:                         List.                (line  36)
+* show listsize:                         List.                (line  37)
 * show logging:                          Logging Output.      (line  26)
 * show max-user-call-depth:              Define.              (line  73)
 * show mem inaccessible-by-default:      Memory Region Attributes.
@@ -3032,7 +3775,7 @@ Index
 * show monitor-warnings, MIPS remote:    MIPS Embedded.       (line 129)
 * show new-console:                      Cygwin Native.       (line  47)
 * show new-group:                        Cygwin Native.       (line  56)
-* show opaque-type-resolution:           Symbols.             (line 247)
+* show opaque-type-resolution:           Symbols.             (line 248)
 * show osabi:                            ABI.                 (line  11)
 * show output-radix:                     Numbers.             (line  39)
 * show overload-resolution:              Debugging C Plus Plus.
@@ -3040,6 +3783,7 @@ Index
 * show pagination:                       Screen Size.         (line  42)
 * show paths:                            Environment.         (line  29)
 * show print:                            Print Settings.      (line  39)
+* show print thread-events:              Threads.             (line 165)
 * show processor:                        Targets.             (line  31)
 * show procfs-file:                      SVR4 Process Information.
                                                               (line  64)
@@ -3058,21 +3802,21 @@ Index
                                                               (line  45)
 * show retransmit-timeout:               MIPS Embedded.       (line  83)
 * show rstack_high_address:              A29K.                (line  17)
-* show sdstimeout:                       PowerPC.             (line  25)
+* show sdstimeout:                       PowerPC Embedded.    (line  42)
 * show server-address:                   M32R/D.              (line  31)
 * show shell:                            Cygwin Native.       (line  82)
 * show signal-thread:                    Hurd Native.         (line  28)
 * show signals, Hurd command:            Hurd Native.         (line  17)
 * show sigs, Hurd command:               Hurd Native.         (line  17)
 * show sigthread:                        Hurd Native.         (line  28)
-* show solib-search-path:                Files.               (line 398)
-* show stop-on-solib-events:             Files.               (line 352)
+* show solib-search-path:                Files.               (line 401)
+* show stop-on-solib-events:             Files.               (line 355)
 * show stopped, Hurd command:            Hurd Native.         (line  37)
 * show struct-convention:                i386.                (line  15)
 * show substitute-path:                  Source Path.         (line 151)
-* show symbol-reloading:                 Symbols.             (line 229)
+* show symbol-reloading:                 Symbols.             (line 230)
 * show syn-garbage-limit, MIPS remote:   MIPS Embedded.       (line 103)
-* show sysroot:                          Files.               (line 384)
+* show sysroot:                          Files.               (line 387)
 * show target-charset:                   Character Sets.      (line  59)
 * show task, Hurd commands:              Hurd Native.         (line  57)
 * show tdesc filename:                   Retrieving Descriptions.
@@ -3092,7 +3836,7 @@ Index
 * show-all-if-unmodified:                Readline Init File Syntax.
                                                               (line 170)
 * si (stepi):                            Continuing and Stepping.
-                                                              (line 190)
+                                                              (line 189)
 * signal:                                Signaling.           (line   6)
 * signal annotation:                     Annotations for Running.
                                                               (line  42)
@@ -3129,6 +3873,7 @@ Index
 * SparcLite:                             Remote Stub.         (line  69)
 * Special Fortran commands:              Special Fortran Commands.
                                                               (line   6)
+* specifying location:                   Specify Location.    (line   6)
 * spr:                                   OpenRISC 1000.       (line  33)
 * SPU:                                   SPU.                 (line   6)
 * SSE registers (x86):                   Registers.           (line  71)
@@ -3147,8 +3892,8 @@ Index
                                                               (line   6)
 * startup code, and backtrace:           Backtrace.           (line  87)
 * stat, file-i/o system call:            stat/fstat.          (line   6)
-* static members of C++ objects:         Print Settings.      (line 301)
-* static members of Pascal objects:      Print Settings.      (line 312)
+* static members of C++ objects:         Print Settings.      (line 340)
+* static members of Pascal objects:      Print Settings.      (line 351)
 * status of trace data collection:       Starting and Stopping Trace Experiments.
                                                               (line  20)
 * status output in GDB/MI:               GDB/MI Output Syntax.
@@ -3156,7 +3901,7 @@ Index
 * step:                                  Continuing and Stepping.
                                                               (line  46)
 * stepi:                                 Continuing and Stepping.
-                                                              (line 190)
+                                                              (line 189)
 * stepping:                              Continuing and Stepping.
                                                               (line   6)
 * stepping into functions with no line info: Continuing and Stepping.
@@ -3166,7 +3911,7 @@ Index
 * stop on C++ exceptions:                Set Catchpoints.     (line  13)
 * stop reply packets:                    Stop Reply Packets.  (line   6)
 * stop, a pseudo-command:                Hooks.               (line  21)
-* stopped threads:                       Thread Stops.        (line  31)
+* stopped threads:                       Thread Stops.        (line  32)
 * stopping annotation:                   Annotations for Running.
                                                               (line   6)
 * stream records in GDB/MI:              GDB/MI Stream Records.
@@ -3182,16 +3927,16 @@ Index
 * supported packets, remote query:       General Query Packets.
                                                               (line 228)
 * switching threads:                     Threads.             (line   6)
-* switching threads automatically:       Threads.             (line 152)
-* symbol decoding style, C++:            Print Settings.      (line 255)
-* symbol dump:                           Symbols.             (line 250)
+* switching threads automatically:       Threads.             (line 169)
+* symbol decoding style, C++:            Print Settings.      (line 294)
+* symbol dump:                           Symbols.             (line 251)
 * symbol from address:                   Symbols.             (line  54)
 * symbol lookup, remote request:         General Query Packets.
                                                               (line 367)
 * symbol names:                          Symbols.             (line  14)
 * symbol overloading:                    Breakpoint Menus.    (line   6)
 * symbol table:                          Files.               (line   6)
-* symbol tables, listing GDB's internal: Symbols.             (line 269)
+* symbol tables, listing GDB's internal: Symbols.             (line 270)
 * symbol, source file and line:          Print Settings.      (line  51)
 * symbol-file:                           Files.               (line  45)
 * symbols, reading from relocatable object files: Files.      (line 132)
@@ -3199,11 +3944,11 @@ Index
 * synchronize with remote MIPS target:   MIPS Embedded.       (line  98)
 * syscall DSO:                           Files.               (line 162)
 * sysinfo:                               DJGPP Native.        (line  19)
-* system calls and thread breakpoints:   Thread Stops.        (line  36)
-* system root, alternate:                Files.               (line 366)
+* system calls and thread breakpoints:   Thread Stops.        (line  37)
+* system root, alternate:                Files.               (line 369)
 * system, file-i/o system call:          system.              (line   6)
-* T packet:                              Packets.             (line 259)
-* t packet:                              Packets.             (line 254)
+* T packet:                              Packets.             (line 260)
+* t packet:                              Packets.             (line 255)
 * T packet reply:                        Stop Reply Packets.  (line  22)
 * tabset:                                TUI Commands.        (line  78)
 * target:                                Target Commands.     (line  49)
@@ -3219,14 +3964,15 @@ Index
 * target descriptions, inclusion:        Target Description Format.
                                                               (line  51)
 * target descriptions, M68K features:    M68K Features.       (line   6)
-* target descriptions, MIPS features:    ARM Features.        (line  21)
+* target descriptions, MIPS features:    MIPS Features.       (line   6)
+* target descriptions, PowerPC features: PowerPC Features.    (line   6)
 * target descriptions, predefined types: Predefined Target Types.
                                                               (line   6)
 * target descriptions, standard features: Standard Target Features.
                                                               (line   6)
 * target descriptions, XML format:       Target Description Format.
                                                               (line   6)
-* target dink32:                         PowerPC.             (line   6)
+* target dink32:                         PowerPC Embedded.    (line  23)
 * target jtag:                           OpenRISC 1000.       (line   9)
 * target lsi PORT:                       MIPS Embedded.       (line  44)
 * target m32r:                           M32R/D.              (line   6)
@@ -3236,57 +3982,57 @@ Index
 * target output in GDB/MI:               GDB/MI Output Syntax.
                                                               (line 108)
 * target pmon PORT:                      MIPS Embedded.       (line  38)
-* target ppcbug:                         PowerPC.             (line   9)
-* target ppcbug1:                        PowerPC.             (line  10)
+* target ppcbug:                         PowerPC Embedded.    (line  26)
+* target ppcbug1:                        PowerPC Embedded.    (line  27)
 * target r3900:                          MIPS Embedded.       (line  46)
 * target rdi:                            ARM.                 (line   6)
 * target rdp:                            ARM.                 (line  11)
 * target remote:                         Connecting.          (line  11)
-* target sds:                            PowerPC.             (line  14)
+* target sds:                            PowerPC Embedded.    (line  31)
 * target sim, with Z8000:                Z8000.               (line  15)
 * target sparclite:                      Sparclite.           (line   6)
 * target stack description:              Maintenance Commands.
-                                                              (line 174)
+                                                              (line 179)
 * target vxworks:                        VxWorks.             (line   6)
 * target w89k:                           PA.                  (line   9)
 * task attributes (GNU Hurd):            Hurd Native.         (line  49)
 * task exception port, GNU Hurd:         Hurd Native.         (line  68)
 * task suspend count:                    Hurd Native.         (line  60)
-* tbreak:                                Set Breaks.          (line  74)
+* tbreak:                                Set Breaks.          (line  50)
 * TCP port, target remote:               Connecting.          (line  29)
 * tdump:                                 tdump.               (line   6)
 * terminal:                              Input/Output.        (line   6)
 * Text User Interface:                   TUI.                 (line   6)
 * tfind:                                 tfind.               (line   6)
-* thbreak:                               Set Breaks.          (line 101)
+* thbreak:                               Set Breaks.          (line  77)
 * this, inside C++ member functions:     C Plus Plus Expressions.
                                                               (line  22)
-* thread apply:                          Threads.             (line 143)
+* thread apply:                          Threads.             (line 146)
 * thread attributes info, remote request: General Query Packets.
                                                               (line 403)
 * thread breakpoints:                    Thread Stops.        (line  10)
-* thread breakpoints and system calls:   Thread Stops.        (line  36)
+* thread breakpoints and system calls:   Thread Stops.        (line  37)
 * thread default settings, GNU Hurd:     Hurd Native.         (line 131)
-* thread identifier (GDB):               Threads.             (line  56)
-* thread identifier (GDB), on HP-UX:     Threads.             (line  82)
-* thread identifier (system):            Threads.             (line  44)
-* thread identifier (system), on HP-UX:  Threads.             (line  86)
-* thread info (Solaris):                 Threads.             (line 126)
+* thread identifier (GDB):               Threads.             (line  59)
+* thread identifier (GDB), on HP-UX:     Threads.             (line  85)
+* thread identifier (system):            Threads.             (line  47)
+* thread identifier (system), on HP-UX:  Threads.             (line  89)
+* thread info (Solaris):                 Threads.             (line 129)
 * thread information, remote request:    General Query Packets.
                                                               (line 166)
-* thread number:                         Threads.             (line  56)
+* thread number:                         Threads.             (line  59)
 * thread properties, GNU Hurd:           Hurd Native.         (line  91)
 * thread suspend count, GNU Hurd:        Hurd Native.         (line 110)
-* thread THREADNO:                       Threads.             (line 128)
-* threads and watchpoints:               Set Watchpoints.     (line 143)
+* thread THREADNO:                       Threads.             (line 131)
+* threads and watchpoints:               Set Watchpoints.     (line 149)
 * threads of execution:                  Threads.             (line   6)
-* threads, automatic switching:          Threads.             (line 152)
-* threads, continuing:                   Thread Stops.        (line  69)
-* threads, stopped:                      Thread Stops.        (line  31)
+* threads, automatic switching:          Threads.             (line 169)
+* threads, continuing:                   Thread Stops.        (line  70)
+* threads, stopped:                      Thread Stops.        (line  32)
 * time of command execution:             Maintenance Commands.
-                                                              (line 237)
+                                                              (line 242)
 * timeout for commands:                  Maintenance Commands.
-                                                              (line 257)
+                                                              (line 262)
 * timeout for serial communications:     Remote Configuration.
                                                               (line  65)
 * timeout, MIPS protocol:                MIPS Embedded.       (line  83)
@@ -3327,7 +4073,7 @@ Index
 * TUI single key mode:                   TUI Single Key Mode. (line   6)
 * type casting memory:                   Expressions.         (line  42)
 * type chain of a data type:             Maintenance Commands.
-                                                              (line 186)
+                                                              (line 191)
 * type checking:                         Checks.              (line  31)
 * type conversions in C++:               C Plus Plus Expressions.
                                                               (line  27)
@@ -3338,7 +4084,7 @@ Index
 * undisplay:                             Auto Display.        (line  45)
 * undo (C-_ or C-x C-u):                 Miscellaneous Commands.
                                                               (line  22)
-* unions in structures, printing:        Print Settings.      (line 195)
+* unions in structures, printing:        Print Settings.      (line 234)
 * universal-argument ():                 Numeric Arguments.   (line  10)
 * unix-filename-rubout ():               Commands For Killing.
                                                               (line  32)
@@ -3349,7 +4095,7 @@ Index
 * unknown address, locating:             Output Formats.      (line  35)
 * unlink, file-i/o system call:          unlink.              (line   6)
 * unlinked object files:                 Files.               (line  26)
-* unload symbols from shared libraries:  Files.               (line 336)
+* unload symbols from shared libraries:  Files.               (line 339)
 * unmap an overlay:                      Overlay Commands.    (line  39)
 * unmapped overlays:                     How Overlays Work.   (line   6)
 * unset environment:                     Environment.         (line  55)
@@ -3367,7 +4113,7 @@ Index
 * upcase-word (M-u):                     Commands For Text.   (line  41)
 * update:                                TUI Commands.        (line  70)
 * upload, M32R:                          M32R/D.              (line  34)
-* use only software watchpoints:         Set Watchpoints.     (line  60)
+* use only software watchpoints:         Set Watchpoints.     (line  66)
 * use_dbt_break:                         M32R/D.              (line  64)
 * use_debug_dma:                         M32R/D.              (line  53)
 * use_ib_break:                          M32R/D.              (line  61)
@@ -3386,33 +4132,36 @@ Index
 * variables, readline:                   Readline Init File Syntax.
                                                               (line  34)
 * variables, setting:                    Assignment.          (line  16)
-* vCont packet:                          Packets.             (line 273)
-* vCont? packet:                         Packets.             (line 299)
+* vAttach packet:                        Packets.             (line 274)
+* vCont packet:                          Packets.             (line 289)
+* vCont? packet:                         Packets.             (line 315)
 * vector unit:                           Vector Unit.         (line   6)
 * vector, auxiliary:                     OS Information.      (line  21)
 * verbose operation:                     Messages/Warnings.   (line   6)
 * verify remote memory image:            Memory.              (line 105)
-* vFlashDone packet:                     Packets.             (line 349)
-* vFlashErase packet:                    Packets.             (line 310)
-* vFlashWrite packet:                    Packets.             (line 327)
-* virtual functions (C++) display:       Print Settings.      (line 323)
+* vFile packet:                          Packets.             (line 326)
+* vFlashDone packet:                     Packets.             (line 369)
+* vFlashErase packet:                    Packets.             (line 330)
+* vFlashWrite packet:                    Packets.             (line 347)
+* virtual functions (C++) display:       Print Settings.      (line 362)
 * visible-stats:                         Readline Init File Syntax.
                                                               (line 179)
-* VTBL display:                          Print Settings.      (line 323)
+* vRun packet:                           Packets.             (line 377)
+* VTBL display:                          Print Settings.      (line 362)
 * VxWorks:                               VxWorks.             (line   6)
 * vxworks-timeout:                       VxWorks.             (line  23)
 * w (SingleKey TUI key):                 TUI Single Key Mode. (line  37)
 * watch:                                 Set Watchpoints.     (line  33)
 * watchdog timer:                        Maintenance Commands.
-                                                              (line 257)
+                                                              (line 262)
 * watchpoint annotation:                 Annotations for Running.
                                                               (line  50)
 * watchpoints:                           Breakpoints.         (line  20)
-* watchpoints and threads:               Set Watchpoints.     (line 143)
+* watchpoints and threads:               Set Watchpoints.     (line 149)
 * weak alias functions:                  Calling.             (line  36)
 * whatis:                                Symbols.             (line  66)
 * where:                                 Backtrace.           (line  34)
-* where to look for shared libraries:    Files.               (line 361)
+* where to look for shared libraries:    Files.               (line 364)
 * while:                                 Command Files.       (line  67)
 * while-stepping (tracepoints):          Tracepoint Actions.  (line  67)
 * wild pointer, interpreting:            Print Settings.      (line  79)
@@ -3428,11 +4177,11 @@ Index
 * writing into executables:              Patching.            (line   6)
 * wrong values:                          Variables.           (line  58)
 * x (examine memory):                    Memory.              (line   9)
-* x command, default address:            Machine Code.        (line  30)
-* X packet:                              Packets.             (line 357)
-* x(examine), and info line:             Machine Code.        (line  30)
+* x command, default address:            Machine Code.        (line  29)
+* X packet:                              Packets.             (line 394)
+* x(examine), and info line:             Machine Code.        (line  29)
 * x86 hardware debug registers:          Maintenance Commands.
-                                                              (line 223)
+                                                              (line 228)
 * XInclude:                              Target Description Format.
                                                               (line  51)
 * XML parser debugging:                  Debugging Output.    (line 130)
@@ -3446,18 +4195,18 @@ Index
                                                               (line  62)
 * yanking text:                          Readline Killing Commands.
                                                               (line   6)
-* z packet:                              Packets.             (line 370)
-* Z packets:                             Packets.             (line 370)
-* Z0 packet:                             Packets.             (line 385)
-* z0 packet:                             Packets.             (line 385)
-* Z1 packet:                             Packets.             (line 411)
-* z1 packet:                             Packets.             (line 411)
-* Z2 packet:                             Packets.             (line 432)
-* z2 packet:                             Packets.             (line 432)
-* Z3 packet:                             Packets.             (line 446)
-* z3 packet:                             Packets.             (line 446)
-* Z4 packet:                             Packets.             (line 460)
-* z4 packet:                             Packets.             (line 460)
+* z packet:                              Packets.             (line 407)
+* Z packets:                             Packets.             (line 407)
+* Z0 packet:                             Packets.             (line 422)
+* z0 packet:                             Packets.             (line 422)
+* Z1 packet:                             Packets.             (line 448)
+* z1 packet:                             Packets.             (line 448)
+* Z2 packet:                             Packets.             (line 469)
+* z2 packet:                             Packets.             (line 469)
+* Z3 packet:                             Packets.             (line 483)
+* z3 packet:                             Packets.             (line 483)
+* Z4 packet:                             Packets.             (line 497)
+* z4 packet:                             Packets.             (line 497)
 * Z8000:                                 Z8000.               (line   6)
 * Zilog Z8000 simulator:                 Z8000.               (line   6)
 * {TYPE}:                                Expressions.         (line  42)

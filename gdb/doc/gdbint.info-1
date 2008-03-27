@@ -554,15 +554,25 @@ expression(s) after each instruction.  The rest of this section is
 mostly irrelevant for software watchpoints.
 
    When the inferior stops, GDB tries to establish, among other
-possible reasons, whether it stopped due to a watchpoint being hit.
-For a data-write watchpoint, it does so by evaluating, for each
-watchpoint, the expression whose value is being watched, and testing
-whether the watched value has changed.  For data-read and data-access
-watchpoints, GDB needs the target to supply a primitive that returns
-the address of the data that was accessed or read (see the description
-of `target_stopped_data_address' below): if this primitive returns a
-valid address, GDB infers that a watchpoint triggered if it watches an
-expression whose evaluation uses that address.
+possible reasons, whether it stopped due to a watchpoint being hit.  It
+first uses `STOPPED_BY_WATCHPOINT' to see if any watchpoint was hit.
+If not, all watchpoint checking is skipped.
+
+   Then GDB calls `target_stopped_data_address' exactly once.  This
+method returns the address of the watchpoint which triggered, if the
+target can determine it.  If the triggered address is available, GDB
+compares the address returned by this method with each watched memory
+address in each active watchpoint.  For data-read and data-access
+watchpoints, GDB announces every watchpoint that watches the triggered
+address as being hit.  For this reason, data-read and data-access
+watchpoints _require_ that the triggered address be available; if not,
+read and access watchpoints will never be considered hit.  For
+data-write watchpoints, if the triggered address is available, GDB
+considers only those watchpoints which match that address; otherwise,
+GDB considers all data-write watchpoints.  For each data-write
+watchpoint that GDB considers, it evaluates the expression whose value
+is being watched, and tests whether the watched value has changed.
+Watchpoints whose watched values have changed are announced as hit.
 
    GDB uses several macros and primitives to support hardware
 watchpoints:
@@ -604,23 +614,38 @@ watchpoints:
 `target_stopped_data_address (ADDR_P)'
      If the inferior has some watchpoint that triggered, place the
      address associated with the watchpoint at the location pointed to
-     by ADDR_P and return non-zero.  Otherwise, return zero.  Note that
-     this primitive is used by GDB only on targets that support
-     data-read or data-access type watchpoints, so targets that have
-     support only for data-write watchpoints need not implement these
-     primitives.
+     by ADDR_P and return non-zero.  Otherwise, return zero.  This is
+     required for data-read and data-access watchpoints.  It is not
+     required for data-write watchpoints, but GDB uses it to improve
+     handling of those also.
+
+     GDB will only call this method once per watchpoint stop,
+     immediately after calling `STOPPED_BY_WATCHPOINT'.  If the
+     target's watchpoint indication is sticky, i.e., stays set after
+     resuming, this method should clear it.  For instance, the x86 debug
+     control register has sticky triggered flags.
 
 `HAVE_STEPPABLE_WATCHPOINT'
      If defined to a non-zero value, it is not necessary to disable a
-     watchpoint to step over it.
+     watchpoint to step over it.    Like
+     `gdbarch_have_nonsteppable_watchpoint', this is usually set when
+     watchpoints trigger at the instruction which will perform an
+     interesting read or write.  It should be set if there is a
+     temporary disable bit which allows the processor to step over the
+     interesting instruction without raising the watchpoint exception
+     again.
 
 `int gdbarch_have_nonsteppable_watchpoint (GDBARCH)'
      If it returns a non-zero value, GDB should disable a watchpoint to
-     step the inferior over it.
+     step the inferior over it.  This is usually set when watchpoints
+     trigger at the instruction which will perform an interesting read
+     or write.
 
 `HAVE_CONTINUABLE_WATCHPOINT'
      If defined to a non-zero value, it is possible to continue the
-     inferior after a watchpoint has been hit.
+     inferior after a watchpoint has been hit.  This is usually set
+     when watchpoints trigger at the instruction following an
+     interesting read or write.
 
 `CANNOT_STEP_HW_WATCHPOINTS'
      If this is defined to a non-zero value, GDB will remove all
@@ -640,7 +665,31 @@ watchpoints:
      determine for sure whether the inferior stopped due to a
      watchpoint, it could return non-zero "just in case".
 
-3.9.1 x86 Watchpoints
+3.9.1 Watchpoints and Threads
+-----------------------------
+
+GDB only supports process-wide watchpoints, which trigger in all
+threads.  GDB uses the thread ID to make watchpoints act as if they
+were thread-specific, but it cannot set hardware watchpoints that only
+trigger in a specific thread.  Therefore, even if the target supports
+threads, per-thread debug registers, and watchpoints which only affect
+a single thread, it should set the per-thread debug registers for all
+threads to the same value.  On GNU/Linux native targets, this is
+accomplished by using `ALL_LWPS' in `target_insert_watchpoint' and
+`target_remove_watchpoint' and by using `linux_set_new_thread' to
+register a handler for newly created threads.
+
+   GDB's GNU/Linux support only reports a single event at a time,
+although multiple events can trigger simultaneously for multi-threaded
+programs.  When multiple events occur, `linux-nat.c' queues subsequent
+events and returns them the next time the program is resumed.  This
+means that `STOPPED_BY_WATCHPOINT' and `target_stopped_data_address'
+only need to consult the current thread's state--the thread indicated
+by `inferior_ptid'.  If two threads have hit watchpoints
+simultaneously, those routines will be called a second time for the
+second thread.
+
+3.9.2 x86 Watchpoints
 ---------------------
 
 The 32-bit Intel x86 (a.k.a. ia32) processors feature special debug
@@ -2141,12 +2190,6 @@ indicated) are:
      Define this to expand into code that will define the function
      named by the expansion of `SIGWINCH_HANDLER'.
 
-`ALIGN_STACK_ON_STARTUP'
-     Define this if your system is of a sort that will crash in
-     `tgetent' if the stack happens not to be longword-aligned when
-     `main' is called.  This is a rare situation, but is known to occur
-     on several different types of systems.
-
 `CRLF_SOURCE_FILES'
      Define this if host files use `\r\n' rather than `\n' as a line
      terminator.  This will cause source file listings to omit `\r'
@@ -2830,6 +2873,9 @@ representations of a data type:
      When non-zero, the macros `gdbarch_register_to_value' and
      `value_to_register' are used to perform any necessary conversion.
 
+     This function should return zero for the register's native type,
+     when no conversion is necessary.
+
  -- Function: void gdbarch_register_to_value (struct gdbarch *GDBARCH,
           int REG, struct type *TYPE, char *FROM, char *TO)
      Convert the value of register number REG to a data object of type
@@ -2954,11 +3000,16 @@ define the target machine.
      parameter to an `int', but still reports the parameter as its
      original type, rather than the promoted type.
 
-`BITS_BIG_ENDIAN'
-     Define this if the numbering of bits in the targets does *not*
+`gdbarch_bits_big_endian (GDBARCH)'
+     This is used if the numbering of bits in the targets does *not*
      match the endianness of the target byte order.  A value of 1 means
      that the bits are numbered in a big-endian bit order, 0 means
      little-endian.
+
+`set_gdbarch_bits_big_endian (GDBARCH, BITS_BIG_ENDIAN)'
+     Calling set_gdbarch_bits_big_endian with a value of 1 indicates
+     that the bits in the target are numbered in a big-endian bit
+     order, 0 indicates little-endian.
 
 `BREAKPOINT'
      This is the character array initializer for the bit pattern to put
@@ -3061,9 +3112,9 @@ define the target machine.
      written.
 
 `int gdbarch_convert_register_p (GDBARCH, REGNUM, struct type *TYPE)'
-     Return non-zero if register REGNUM can represent data values in a
-     non-standard form.  *Note Using Different Register and Memory Data
-     Representations: Target Architecture Definition.
+     Return non-zero if register REGNUM represents data values of type
+     TYPE in a non-standard form.  *Note Using Different Register and
+     Memory Data Representations: Target Architecture Definition.
 
 `CORE_ADDR gdbarch_decr_pc_after_break (GDBARCH)'
      This function shall return the amount by which to decrement the PC
@@ -3107,24 +3158,6 @@ define the target machine.
 `int gdbarch_ecoff_reg_to_regnum (GDBARCH, ECOFF_REGNR)'
      Convert ECOFF register number  ECOFF_REGNR into GDB regnum.  If
      not defined, no conversion will be performed.
-
-`void gdbarch_extract_return_value (GDBARCH, TYPE, REGBUF, VALBUF)'
-     Define this to extract a function's return value of type TYPE from
-     the raw register state REGBUF and copy that, in virtual format,
-     into VALBUF.
-
-     This method has been deprecated in favour of `gdbarch_return_value'
-     (*note gdbarch_return_value::).
-
-`DEPRECATED_EXTRACT_STRUCT_VALUE_ADDRESS(REGBUF)'
-     When defined, extract from the array REGBUF (containing the raw
-     register state) the `CORE_ADDR' at which a function should return
-     its structure value.
-
-     *Note gdbarch_return_value::.
-
-`DEPRECATED_EXTRACT_STRUCT_VALUE_ADDRESS_P()'
-     Predicate for `DEPRECATED_EXTRACT_STRUCT_VALUE_ADDRESS'.
 
 `DEPRECATED_FP_REGNUM'
      If the virtual frame pointer is kept in a register, then define
@@ -3209,7 +3242,7 @@ define the target machine.
      frame), is typically no more than:
 
           ULONGEST pc;
-          pc = frame_unwind_unsigned_register (next_frame, S390_PC_REGNUM);
+          pc = frame_unwind_register_unsigned (next_frame, S390_PC_REGNUM);
           return gdbarch_addr_bits_remove (gdbarch, pc);
 
      *Note DEPRECATED_FRAME_SAVED_PC::, which this method replaces.
@@ -3222,7 +3255,7 @@ define the target machine.
      frame), is typically no more than:
 
           ULONGEST sp;
-          sp = frame_unwind_unsigned_register (next_frame, S390_SP_REGNUM);
+          sp = frame_unwind_register_unsigned (next_frame, S390_SP_REGNUM);
           return gdbarch_addr_bits_remove (gdbarch, sp);
 
      *Note TARGET_READ_SP::, which this method replaces.
@@ -3395,27 +3428,29 @@ define the target machine.
      the next instruction. See `sparc-tdep.c' and `rs6000-tdep.c' for
      examples.
 
-`SOFUN_ADDRESS_MAYBE_MISSING'
+`set_gdbarch_sofun_address_maybe_missing (GDBARCH, SET)'
      Somebody clever observed that, the more actual addresses you have
      in the debug information, the more time the linker has to spend
      relocating them.  So whenever there's some other way the debugger
      could find the address it needs, you should omit it from the debug
      info, to make linking faster.
 
-     `SOFUN_ADDRESS_MAYBE_MISSING' indicates that a particular set of
-     hacks of this sort are in use, affecting `N_SO' and `N_FUN'
-     entries in stabs-format debugging information.  `N_SO' stabs mark
-     the beginning and ending addresses of compilation units in the text
-     segment.  `N_FUN' stabs mark the starts and ends of functions.
+     Calling `set_gdbarch_sofun_address_maybe_missing' with a non-zero
+     argument SET indicates that a particular set of hacks of this sort
+     are in use, affecting `N_SO' and `N_FUN' entries in stabs-format
+     debugging information.  `N_SO' stabs mark the beginning and ending
+     addresses of compilation units in the text segment.  `N_FUN' stabs
+     mark the starts and ends of functions.
 
-     `SOFUN_ADDRESS_MAYBE_MISSING' means two things:
+     In this case, GDB assumes two things:
 
-        * `N_FUN' stabs have an address of zero.  Instead, you should
-          find the addresses where the function starts by taking the
-          function name from the stab, and then looking that up in the
-          minsyms (the linker/assembler symbol table).  In other words,
-          the stab has the name, and the linker/assembler symbol table
-          is the only place that carries the address.
+        * `N_FUN' stabs have an address of zero.  Instead of using those
+          addresses, you should find the address where the function
+          starts by taking the function name from the stab, and then
+          looking that up in the minsyms (the linker/assembler symbol
+          table).  In other words, the stab has the name, and the
+          linker/assembler symbol table is the only place that carries
+          the address.
 
         * `N_SO' stabs have an address of zero, too.  You just look at
           the `N_FUN' stabs that appear before and after the `N_SO'
@@ -3433,9 +3468,6 @@ define the target machine.
 `int gdbarch_stabs_argument_has_addr (GDBARCH, TYPE)'
      Define this function to return nonzero if a function argument of
      type TYPE is passed by reference instead of value.
-
-     This method replaces `DEPRECATED_REG_STRUCT_HAS_ADDR' (*note
-     DEPRECATED_REG_STRUCT_HAS_ADDR::).
 
 `PROCESS_LINENUMBER_HOOK'
      A hook defined for XCOFF reading.
@@ -3479,13 +3511,6 @@ define the target machine.
      Return the name of register REGNR as a string.  May return `NULL'
      to indicate that REGNR is not a valid register.
 
-`DEPRECATED_REG_STRUCT_HAS_ADDR (GCC_P, TYPE)'
-     Define this to return 1 if the given type will be passed by
-     pointer rather than directly.
-
-     This method has been replaced by `gdbarch_stabs_argument_has_addr'
-     (*note gdbarch_stabs_argument_has_addr::).
-
 `SAVE_DUMMY_FRAME_TOS (SP)'
      Used in `call_function_by_hand' to notify the target dependent
      code of the top-of-stack value that will be passed to the inferior
@@ -3514,9 +3539,6 @@ define the target machine.
      non-`NULL', also copy the return value from REGCACHE into READBUF
      (REGCACHE contains a copy of the registers from the just returned
      function).
-
-     *Note DEPRECATED_EXTRACT_STRUCT_VALUE_ADDRESS::, for a description
-     of how return-values that use the struct convention are handled.
 
      _Maintainer note: This method replaces separate predicate, extract,
      store methods.  By having only one method, the logic needed to
@@ -3564,14 +3586,6 @@ define the target machine.
 `int gdbarch_stab_reg_to_regnum (GDBARCH, STAB_REGNR)'
      Use this function to convert stab register STAB_REGNR into GDB
      regnum.  If not defined, no conversion will be done.
-
-`void gdbarch_store_return_value (GDBARCH, TYPE, REGCACHE, VALBUF)'
-     A function that writes the function return value, found in VALBUF,
-     into the REGCACHE.  TYPE is the type of the value that is to be
-     returned.
-
-     This method has been deprecated in favour of `gdbarch_return_value'
-     (*note gdbarch_return_value::).
 
 `SYMBOL_RELOADING_DEFAULT'
      The default value of the "symbol-reloading" variable.  (Never
@@ -3679,14 +3693,6 @@ define the target machine.
      Convert a value of type TYPE into the raw contents of a register.
      *Note Using Different Register and Memory Data Representations:
      Target Architecture Definition.
-
-`VARIABLES_INSIDE_BLOCK (DESC, GCC_P)'
-     For dbx-style debugging information, if the compiler puts variable
-     declarations inside LBRAC/RBRAC blocks, this should be defined to
-     be nonzero.  DESC is the value of `n_desc' from the `N_RBRAC'
-     symbol, and GCC_P is true if GDB has noticed the presence of
-     either the `GCC_COMPILED_SYMBOL' or the `GCC2_COMPILED_SYMBOL'.
-     By default, this is 0.
 
 
    Motorola M68K target conditionals.
@@ -4175,14 +4181,6 @@ the same.  These macros should be defined (or left undefined) in
      defined in `nm.h' _only_ in order to override the default
      definition in `procfs.c'.
 
-`SHELL_COMMAND_CONCAT'
-     If defined, is a string to prefix on the shell command used to
-     start the inferior.
-
-`SHELL_FILE'
-     If defined, this is the name of the shell to use to run the
-     inferior.  Defaults to `"/bin/sh"'.
-
 `SOLIB_ADD (FILENAME, FROM_TTY, TARG, READSYMS)'
      Define this to expand into an expression that will cause the
      symbols in FILENAME to be added to GDB's symbol table. If READSYMS
@@ -4198,9 +4196,6 @@ the same.  These macros should be defined (or left undefined) in
      once when the shell execs, and once when the program itself execs.
      If the actual number of traps is something other than 2, then
      define this macro to expand into the number expected.
-
-`CLEAR_SOLIB'
-     See `objfiles.c'.
 
 
 
@@ -5395,6 +5390,12 @@ performed:
      Update the copyright year in file `top.c', function
      `print_gdb_version'.
 
+   * Add the new year in the copyright notices of all source and
+     documentation files.  This can be done semi-automatically by
+     running the `copyright.sh' script.  This script requires Emacs 22
+     or later to be installed.
+
+
 
 File: gdbint.info,  Node: Releasing GDB,  Next: Testsuite,  Prev: Start of New Year Procedure,  Up: Top
 
@@ -6391,6 +6392,19 @@ should be removed as those parts of the debugger are otherwise touched.
      Any `FOO-xdep.c' file that references STACK_END_ADDR is so old
      that it has never been converted to use BFD.  Now that's old!
 
+
+20.5 Build Script
+=================
+
+The script `gdb_buildall.sh' builds GDB with flag
+`--enable-targets=all' set.  This builds GDB with all supported targets
+activated.  This helps testing GDB when doing changes that affect more
+than one architecture and is much faster than using `gdb_mbuild.sh'.
+
+   After building GDB the script checks which architectures are
+supported and then switches the current architecture to each of those
+to get information about the architecture.  The test results are stored
+in log files in the directory the script was called from.
 
 
 File: gdbint.info,  Node: GDB Observers,  Next: GNU Free Documentation License,  Prev: Hints,  Up: Top

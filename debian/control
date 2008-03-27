@@ -2,13 +2,13 @@ Source: gdb-doc
 Maintainer: Daniel Jacobowitz <dan@debian.org>
 Section: non-free/devel
 Priority: optional
-Standards-Version: 3.7.2
-Build-Depends: cdbs (>= 0.4.17), quilt (>= 0.30-1), debhelper (>= 4.9.0)
+Standards-Version: 3.7.3
+Build-Depends: cdbs (>= 0.4.17), quilt (>= 0.30), debhelper (>= 4.9.0)
 Build-Depends-Indep: autoconf, texinfo (>= 4.7-2.2), tetex-bin
 
 Package: gdb-doc
 Architecture: all
-Section: non-free/devel
+Section: non-free/doc
 Depends: ${shlibs:Depends}
 Replaces: gdb (<< 6.4.50.20060511-1), insight (<< 6.1+cvs.2004.04.07-1)
 Description: The GNU Debugger Documentation
