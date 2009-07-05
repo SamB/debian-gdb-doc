@@ -1,3 +1,13 @@
+gdb-doc (6.8.50.20090628-1) unstable; urgency=low
+
+  * New upstream snapshot.
+  * Include HTML manuals.
+  * Update Standards-Version to 3.8.2 (no changes required).
+  * Added doc-base support.
+  * Remove the accidentally packaged annotations manual.
+
+ -- Daniel Jacobowitz <dan@debian.org>  Sun, 05 Jul 2009 19:08:27 -0400
+
 gdb-doc (6.8-1) unstable; urgency=low
 
   * New upstream release.

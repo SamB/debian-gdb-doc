@@ -21,7 +21,20 @@ SHELL += -e
 INSTALL = /usr/bin/install -p
 export INSTALL
 
-DEB_MAKE_BUILD_TARGET = all info
+DEB_MAKE_BUILD_TARGET = all info html
+
+build/gdb-doc:: $(DEB_BUILDDIR)/html
+
+$(DEB_BUILDDIR)/html:
+	mkdir $(DEB_BUILDDIR)/html
+	mv $(DEB_BUILDDIR)/gdb $(DEB_BUILDDIR)/html/
+	mv $(DEB_BUILDDIR)/gdbint $(DEB_BUILDDIR)/html/
+	mv $(DEB_BUILDDIR)/stabs $(DEB_BUILDDIR)/html/
+
+common-binary-post-install-indep::
+	rm -f debian/gdb-doc/usr/share/info/annota*
+	install -d debian/gdb-doc/usr/share/doc/gdb
+	ln -s ../gdb-doc/html debian/gdb-doc/usr/share/doc/gdb/html
 
 post-patches::
 	if ! test -f gdb/version.in.backup; then \
@@ -30,9 +43,6 @@ post-patches::
 	fi
 
 clean::
-	# Will CDBS do this?
-	rm -rf $(DEB_BUILDDIR)
-
 	if test -f gdb/version.in.backup; then \
 	  mv -f gdb/version.in.backup gdb/version.in; \
 	fi
