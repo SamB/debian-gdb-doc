@@ -1,3 +1,11 @@
+gdb-doc (7.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Update Standards-Version to 3.8.4 (no changes required).
+  * Switch to 3.0 (quilt) source package format.
+
+ -- Daniel Jacobowitz <dan@debian.org>  Fri, 19 Mar 2010 16:25:16 -0400
+
 gdb-doc (7.0-1) unstable; urgency=low
 
   * New upstream release.

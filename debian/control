@@ -2,8 +2,8 @@ Source: gdb-doc
 Maintainer: Daniel Jacobowitz <dan@debian.org>
 Section: non-free/devel
 Priority: optional
-Standards-Version: 3.8.2
-Build-Depends: cdbs (>= 0.4.17), quilt (>= 0.30), debhelper (>= 7)
+Standards-Version: 3.8.4
+Build-Depends: cdbs (>= 0.4.17), debhelper (>= 7)
 Build-Depends-Indep: autoconf, texinfo (>= 4.7-2.2)
 
 Package: gdb-doc
