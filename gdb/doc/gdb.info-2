@@ -9,7 +9,7 @@ END-INFO-DIR-ENTRY
    This file documents the GNU debugger GDB.
 
    This is the Ninth Edition, of `Debugging with GDB: the GNU
-Source-Level Debugger' for GDB Version 6.4.90.
+Source-Level Debugger' for GDB Version 6.5.
 
    Copyright (C) 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996,
 1998,
@@ -4784,7 +4784,7 @@ executable file without downloading, use the GDB commands `file' or
       the conditions.
      There is absolutely no warranty for GDB; type "show warranty"
      for details.
-     GDB 6.4.90, Copyright 1992 Free Software Foundation, Inc...
+     GDB 6.5, Copyright 1992 Free Software Foundation, Inc...
      (gdb) target hms
      Connected to remote H8/300 HMS system.
      (gdb) load t.x
