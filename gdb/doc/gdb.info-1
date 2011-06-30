@@ -9,7 +9,7 @@ END-INFO-DIR-ENTRY
    This file documents the GNU debugger GDB.
 
    This is the Ninth Edition, of `Debugging with GDB: the GNU
-Source-Level Debugger' for GDB Version 6.7.1.
+Source-Level Debugger' for GDB Version 6.8.
 
    Copyright (C) 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996,
 1998,
@@ -35,7 +35,7 @@ Debugging with GDB
 
 This file describes GDB, the GNU symbolic debugger.
 
-   This is the Ninth Edition, for GDB Version 6.7.1.
+   This is the Ninth Edition, for GDB Version 6.8.
 
    Copyright (C) 1988-2006 Free Software Foundation, Inc.
 
@@ -458,7 +458,7 @@ Let us use GDB to try to see what is going on.
      There is absolutely no warranty for GDB; type "show warranty"
       for details.
 
-     GDB 6.7.1, Copyright 1999 Free Software Foundation, Inc...
+     GDB 6.8, Copyright 1999 Free Software Foundation, Inc...
      (gdb)
 
 GDB reads only enough symbol data to know where to find the rest when
@@ -759,13 +759,9 @@ them, so long as enough of the option is present to be unambiguous.
 `-c FILE'
      Use file FILE as a core dump to examine.
 
-`-c NUMBER'
-
 `-pid NUMBER'
 `-p NUMBER'
-     Connect to process ID NUMBER, as with the `attach' command.  If
-     there is no such process, GDB will attempt to open a core file
-     named NUMBER.
+     Connect to process ID NUMBER, as with the `attach' command.
 
 `-command FILE'
 `-x FILE'
@@ -1347,10 +1343,10 @@ introduces each of them in the appropriate context.  The listings under
 
 `info'
      This command (abbreviated `i') is for describing the state of your
-     program.  For example, you can list the arguments given to your
-     program with `info args', list the registers currently in use with
-     `info registers', or list the breakpoints you have set with `info
-     breakpoints'.  You can get a complete list of the `info'
+     program.  For example, you can show the arguments passed to a
+     function with `info args', list the registers currently in use
+     with `info registers', or list the breakpoints you have set with
+     `info breakpoints'.  You can get a complete list of the `info'
      sub-commands with `help info'.
 
 `set'
@@ -1866,6 +1862,9 @@ registers and execution stack, and perhaps private memory.
 
    * thread-specific breakpoints
 
+   * `set print thread-events', which controls printing of messages on
+     thread start and exit.
+
      _Warning:_ These facilities are not yet available on every GDB
      configuration where the operating system supports threads.  If
      your GDB does not support threads, these commands have no effect.
@@ -1991,6 +1990,20 @@ a Solaris-specific command:
      numbers, as in `2-4'.  To apply a command to all threads, type
      `thread apply all COMMAND'.
 
+`set print thread-events'
+`set print thread-events on'
+`set print thread-events off'
+     The `set print thread-events' command allows you to enable or
+     disable printing of messages when GDB notices that new threads have
+     started or that threads have exited.  By default, these messages
+     will be printed if detection of these events is supported by the
+     target.  Note that these messages cannot be disabled on all
+     targets.
+
+`show print thread-events'
+     Show whether messages will be printed when GDB detects that threads
+     have started and exited.
+
    Whenever GDB stops your program, due to a breakpoint or a signal, it
 automatically selects the thread where that breakpoint or signal
 happened.  GDB alerts you to the context switch with a message of the
@@ -2074,10 +2087,10 @@ use the command `set detach-on-fork'.
           held suspended.
 
 
-`show detach-on-follow'
-     Show whether detach-on-follow mode is on/off.
+`show detach-on-fork'
+     Show whether detach-on-fork mode is on/off.
 
-   If you choose to set DETACH-ON-FOLLOW mode off, then GDB will retain
+   If you choose to set `detach-on-fork' mode off, then GDB will retain
 control of all forked processes (including nested forks).  You can list
 the forked processes under the control of GDB by using the `info forks'
 command, and switch from one fork to another by using the `fork'
@@ -2092,6 +2105,11 @@ command.
      Make fork number FORK-ID the current process.  The argument
      FORK-ID is the internal fork number assigned by GDB, as shown in
      the first field of the `info forks' display.
+
+`process PROCESS-ID'
+     Make process number PROCESS-ID the current process.  The argument
+     PROCESS-ID must be one that is listed in the output of `info
+     forks'.
 
 
    To quit debugging one of the forked processes, you can either detach
@@ -2338,41 +2356,17 @@ breakpoint you've set most recently; see *Note Convenience Variables:
 Convenience Vars, for a discussion of what you can do with convenience
 variables.
 
-   You have several ways to say where the breakpoint should go.
+`break LOCATION'
+     Set a breakpoint at the given LOCATION, which can specify a
+     function name, a line number, or an address of an instruction.
+     (*Note Specify Location::, for a list of all the possible ways to
+     specify a LOCATION.)  The breakpoint will stop your program just
+     before it executes any of the code in the specified LOCATION.
 
-`break FUNCTION'
-     Set a breakpoint at entry to function FUNCTION.  When using source
-     languages that permit overloading of symbols, such as C++,
-     FUNCTION may refer to more than one possible place to break.
-     *Note Breakpoint Menus: Breakpoint Menus, for a discussion of that
-     situation.
-
-`break +OFFSET'
-`break -OFFSET'
-     Set a breakpoint some number of lines forward or back from the
-     position at which execution stopped in the currently selected
-     "stack frame".  (*Note Frames: Frames, for a description of stack
-     frames.)
-
-`break LINENUM'
-     Set a breakpoint at line LINENUM in the current source file.  The
-     current source file is the last file whose source text was printed.
-     The breakpoint will stop your program just before it executes any
-     of the code on that line.
-
-`break FILENAME:LINENUM'
-     Set a breakpoint at line LINENUM in source file FILENAME.
-
-`break FILENAME:FUNCTION'
-     Set a breakpoint at entry to function FUNCTION found in file
-     FILENAME.  Specifying a file name as well as a function name is
-     superfluous except when multiple files contain similarly named
-     functions.
-
-`break *ADDRESS'
-     Set a breakpoint at address ADDRESS.  You can use this to set
-     breakpoints in parts of your program which do not have debugging
-     information or source files.
+     When using source languages that permit overloading of symbols,
+     such as C++, a function name may refer to more than one possible
+     place to break.  *Note Breakpoint Menus: Breakpoint Menus, for a
+     discussion of that situation.
 
 `break'
      When called without any arguments, `break' sets a breakpoint at
@@ -2485,9 +2479,12 @@ variables.
 
     _Address_
           Where the breakpoint is in your program, as a memory address.
-          If the breakpoint is pending (see below for details) on a
-          future load of a shared library, the address will be listed
-          as `<PENDING>'.
+          For a pending breakpoint whose address is not yet known,
+          this field will contain `<PENDING>'.  Such breakpoint won't
+          fire until a shared library that has the symbol or line
+          referred by breakpoint is loaded.  See below for details.  A
+          breakpoint with several locations will have `<MULTIPLE>' in
+          this field--see below for details.
 
     _What_
           Where the breakpoint is in the source for your program, as a
@@ -2521,21 +2518,79 @@ your program.  There is nothing silly or meaningless about this.  When
 the breakpoints are conditional, this is even useful (*note Break
 Conditions: Conditions.).
 
-   If a specified breakpoint location cannot be found, it may be due to
-the fact that the location is in a shared library that is yet to be
-loaded.  In such a case, you may want GDB to create a special
-breakpoint (known as a "pending breakpoint") that attempts to resolve
-itself in the future when an appropriate shared library gets loaded.
+   It is possible that a breakpoint corresponds to several locations in
+your program.  Examples of this situation are:
 
-   Pending breakpoints are useful to set at the start of your GDB
-session for locations that you know will be dynamically loaded later by
-the program being debugged.  When shared libraries are loaded, a check
-is made to see if the load resolves any pending breakpoint locations.
-If a pending breakpoint location gets resolved, a regular breakpoint is
-created and the original pending breakpoint is removed.
+   * For a C++ constructor, the GCC compiler generates several
+     instances of the function body, used in different cases.
 
-   GDB provides some additional commands for controlling pending
-breakpoint support:
+   * For a C++ template function, a given line in the function can
+     correspond to any number of instantiations.
+
+   * For an inlined function, a given source line can correspond to
+     several places where that function is inlined.
+
+
+   In all those cases, GDB will insert a breakpoint at all the relevant
+locations.
+
+   A breakpoint with multiple locations is displayed in the breakpoint
+table using several rows--one header row, followed by one row for each
+breakpoint location.  The header row has `<MULTIPLE>' in the address
+column.  The rows for individual locations contain the actual addresses
+for locations, and show the functions to which those locations belong.
+The number column for a location is of the form
+BREAKPOINT-NUMBER.LOCATION-NUMBER.
+
+   For example:
+
+     Num     Type           Disp Enb  Address    What
+     1       breakpoint     keep y    <MULTIPLE>
+             stop only if i==1
+             breakpoint already hit 1 time
+     1.1                         y    0x080486a2 in void foo<int>() at t.cc:8
+     1.2                         y    0x080486ca in void foo<double>() at t.cc:8
+
+   Each location can be individually enabled or disabled by passing
+BREAKPOINT-NUMBER.LOCATION-NUMBER as argument to the `enable' and
+`disable' commands.  Note that you cannot delete the individual
+locations from the list, you can only delete the entire list of
+locations that belong to their parent breakpoint (with the `delete NUM'
+command, where NUM is the number of the parent breakpoint, 1 in the
+above example).  Disabling or enabling the parent breakpoint (*note
+Disabling::) affects all of the locations that belong to that
+breakpoint.
+
+   It's quite common to have a breakpoint inside a shared library.
+Shared libraries can be loaded and unloaded explicitly, and possibly
+repeatedly, as the program is executed.  To support this use case, GDB
+updates breakpoint locations whenever any shared library is loaded or
+unloaded.  Typically, you would set a breakpoint in a shared library at
+the beginning of your debugging session, when the library is not
+loaded, and when the symbols from the library are not available.  When
+you try to set breakpoint, GDB will ask you if you want to set a so
+called "pending breakpoint"--breakpoint whose address is not yet
+resolved.
+
+   After the program is run, whenever a new shared library is loaded,
+GDB reevaluates all the breakpoints.  When a newly loaded shared
+library contains the symbol or line referred to by some pending
+breakpoint, that breakpoint is resolved and becomes an ordinary
+breakpoint.  When a library is unloaded, all breakpoints that refer to
+its symbols or source lines become pending again.
+
+   This logic works for breakpoints with multiple locations, too.  For
+example, if you have a breakpoint in a C++ template function, and a
+newly loaded shared library has an instantiation of that template, a
+new location is added to the list of locations for the breakpoint.
+
+   Except for having unresolved address, pending breakpoints do not
+differ from regular breakpoints.  You can set conditions or commands,
+enable and disable them and perform other breakpoint operations.
+
+   GDB provides some additional commands for controlling what happens
+when the `break' command cannot resolve breakpoint address
+specification to an address:
 
 `set breakpoint pending auto'
      This is the default behavior.  When GDB cannot find the breakpoint
@@ -2554,18 +2609,9 @@ breakpoint support:
 `show breakpoint pending'
      Show the current behavior setting for creating pending breakpoints.
 
-   Normal breakpoint operations apply to pending breakpoints as well.
-You may specify a condition for a pending breakpoint and/or commands to
-run when the breakpoint is reached.  You can also enable or disable the
-pending breakpoint.  When you specify a condition for a pending
-breakpoint, the parsing of the condition will be deferred until the
-point where the pending breakpoint location is resolved.  Disabling a
-pending breakpoint tells GDB to not attempt to resolve the breakpoint
-on any subsequent shared library load.  When a pending breakpoint is
-re-enabled, GDB checks to see if the location is already resolved.
-This is done because any number of shared library loads could have
-occurred since the time the breakpoint was disabled and one or more of
-these loads could resolve the location.
+   The settings above only affect the `break' command and its variants.
+Once breakpoint is set, it will be automatically updated as shared
+libraries are loaded and unloaded.
 
    For some targets, GDB can automatically decide if hardware or
 software breakpoints should be used, depending on whether the
@@ -2623,11 +2669,11 @@ times slower than normal execution.  (But this may still be worth it, to
 catch errors where you have no clue what part of your program is the
 culprit.)
 
-   On some systems, such as HP-UX, GNU/Linux and most other x86-based
-targets, GDB includes support for hardware watchpoints, which do not
-slow down the running of your program.
+   On some systems, such as HP-UX, PowerPC, GNU/Linux and most other
+x86-based targets, GDB includes support for hardware watchpoints, which
+do not slow down the running of your program.
 
-`watch EXPR'
+`watch EXPR [thread THREADNUM]'
      Set a watchpoint for an expression.  GDB will break when the
      expression EXPR is written into by the program and its value
      changes.  The simplest (and the most popular) use of this command
@@ -2635,11 +2681,17 @@ slow down the running of your program.
 
           (gdb) watch foo
 
-`rwatch EXPR'
+     If the command includes a `[thread THREADNUM]' clause, GDB breaks
+     only when the thread identified by THREADNUM changes the value of
+     EXPR.  If any other threads change the value of EXPR, GDB will not
+     break.  Note that watchpoints restricted to a single thread in
+     this way only work with Hardware Watchpoints.
+
+`rwatch EXPR [thread THREADNUM]'
      Set a watchpoint that will break when the value of EXPR is read by
      the program.
 
-`awatch EXPR'
+`awatch EXPR [thread THREADNUM]'
      Set a watchpoint that will break when EXPR is either read from or
      written into by the program.
 
@@ -2737,25 +2789,18 @@ program, you will need to set all such watchpoints again.  One way of
 doing that would be to set a code breakpoint at the entry to the `main'
 function and when it breaks, set all the watchpoints.
 
-     _Warning:_ In multi-thread programs, watchpoints have only limited
-     usefulness.  With the current watchpoint implementation, GDB can
-     only watch the value of an expression _in a single thread_.  If
-     you are confident that the expression can only change due to the
-     current thread's activity (and if you are also confident that no
-     other thread can become current), then you can use watchpoints as
-     usual.  However, GDB may not notice when a non-current thread's
-     activity changes the expression.
+   In multi-threaded programs, watchpoints will detect changes to the
+watched expression from every thread.
 
-     _HP-UX Warning:_ In multi-thread programs, software watchpoints
-     have only limited usefulness.  If GDB creates a software
-     watchpoint, it can only watch the value of an expression _in a
-     single thread_.  If you are confident that the expression can only
-     change due to the current thread's activity (and if you are also
-     confident that no other thread can become current), then you can
-     use software watchpoints as usual.  However, GDB may not notice
-     when a non-current thread's activity changes the expression.
-     (Hardware watchpoints, in contrast, watch an expression in all
-     threads.)
+     _Warning:_ In multi-threaded programs, software watchpoints have
+     only limited usefulness.  If GDB creates a software watchpoint, it
+     can only watch the value of an expression _in a single thread_.
+     If you are confident that the expression can only change due to
+     the current thread's activity (and if you are also confident that
+     no other thread can become current), then you can use software
+     watchpoints as usual.  However, GDB may not notice when a
+     non-current thread's activity changes the expression.  (Hardware
+     watchpoints, in contrast, watch an expression in all threads.)
 
    *Note set remote hardware-watchpoint-limit::.
 
@@ -2792,14 +2837,16 @@ shared library.  Use the `catch' command to set a catchpoint.
           A failed Ada assertion.
 
     `exec'
-          A call to `exec'.  This is currently only available for HP-UX.
+          A call to `exec'.  This is currently only available for HP-UX
+          and GNU/Linux.
 
     `fork'
-          A call to `fork'.  This is currently only available for HP-UX.
+          A call to `fork'.  This is currently only available for HP-UX
+          and GNU/Linux.
 
     `vfork'
-          A call to `vfork'.  This is currently only available for
-          HP-UX.
+          A call to `vfork'.  This is currently only available for HP-UX
+          and GNU/Linux.
 
     `load'
     `load LIBNAME'
@@ -2890,14 +2937,19 @@ address.
      When the innermost frame is selected, this is a good way to delete
      a breakpoint where your program just stopped.
 
-`clear FUNCTION'
-`clear FILENAME:FUNCTION'
-     Delete any breakpoints set at entry to the named FUNCTION.
+`clear LOCATION'
+     Delete any breakpoints set at the specified LOCATION.  *Note
+     Specify Location::, for the various forms of LOCATION; the most
+     useful ones are listed below:
 
-`clear LINENUM'
-`clear FILENAME:LINENUM'
-     Delete any breakpoints set at or within the code of the specified
-     LINENUM of the specified FILENAME.
+    `clear FUNCTION'
+    `clear FILENAME:FUNCTION'
+          Delete any breakpoints set at entry to the named FUNCTION.
+
+    `clear LINENUM'
+    `clear FILENAME:LINENUM'
+          Delete any breakpoints set at or within the code of the
+          specified LINENUM of the specified FILENAME.
 
 `delete [breakpoints] [RANGE...]'
      Delete the breakpoints, watchpoints, or catchpoints of the
@@ -2922,6 +2974,9 @@ the `enable' and `disable' commands, optionally specifying one or more
 breakpoint numbers as arguments.  Use `info break' or `info watch' to
 print a list of breakpoints, watchpoints, and catchpoints if you do not
 know which numbers to use.
+
+   Disabling and enabling a breakpoint that has multiple locations
+affects all of its locations.
 
    A breakpoint, watchpoint, or catchpoint can have any of four
 different states of enablement:
@@ -3156,10 +3211,10 @@ Some programming languages (notably C++ and Objective-C) permit a
 single function name to be defined several times, for application in
 different contexts.  This is called "overloading".  When a function
 name is overloaded, `break FUNCTION' is not enough to tell GDB where
-you want a breakpoint.  If you realize this is a problem, you can use
-something like `break FUNCTION(TYPES)' to specify which particular
-version of the function you want.  Otherwise, GDB offers you a menu of
-numbered choices for different possible breakpoints, and waits for your
+you want a breakpoint.  You can use explicit signature of the function,
+as in `break FUNCTION(TYPES)', to specify which particular version of
+the function you want.  Otherwise, GDB offers you a menu of numbered
+choices for different possible breakpoints, and waits for your
 selection with the prompt `>'.  The first two options are always `[0]
 cancel' and `[1] all'.  Typing `1' sets a breakpoint at each definition
 of FUNCTION, and typing `0' aborts the `break' command without setting
@@ -3440,16 +3495,15 @@ interesting, until you see the problem happen.
 `u LOCATION'
      Continue running your program until either the specified location
      is reached, or the current stack frame returns.  LOCATION is any of
-     the forms of argument acceptable to `break' (*note Setting
-     Breakpoints: Set Breaks.).  This form of the command uses
-     breakpoints, and hence is quicker than `until' without an
-     argument.  The specified location is actually reached only if it
-     is in the current frame.  This implies that `until' can be used to
-     skip over recursive function invocations.  For instance in the
-     code below, if the current location is line `96', issuing `until
-     99' will execute the program up to line `99' in the same
-     invocation of factorial, i.e., after the inner invocations have
-     returned.
+     the forms described in *Note Specify Location::.  This form of the
+     command uses temporary breakpoints, and hence is quicker than
+     `until' without an argument.  The specified location is actually
+     reached only if it is in the current frame.  This implies that
+     `until' can be used to skip over recursive function invocations.
+     For instance in the code below, if the current location is line
+     `96', issuing `until 99' will execute the program up to line `99'
+     in the same invocation of factorial, i.e., after the inner
+     invocations have returned.
 
           94	int factorial (int value)
           95	{
@@ -3461,10 +3515,10 @@ interesting, until you see the problem happen.
 
 `advance LOCATION'
      Continue running the program up to the given LOCATION.  An
-     argument is required, which should be of the same form as
-     arguments for the `break' command.  Execution will also stop upon
-     exit from the current stack frame.  This command is similar to
-     `until', but `advance' will not skip over recursive function
+     argument is required, which should be of one of the forms
+     described in *Note Specify Location::.  Execution will also stop
+     upon exit from the current stack frame.  This command is similar
+     to `until', but `advance' will not skip over recursive function
      calls, and the target location doesn't have to be in the same
      frame as the current one.
 
@@ -3604,7 +3658,8 @@ on all threads, or on a particular thread.
 `break LINESPEC thread THREADNO'
 `break LINESPEC thread THREADNO if ...'
      LINESPEC specifies source lines; there are several ways of writing
-     them, but the effect is always to specify some source line.
+     them (*note Specify Location::), but the effect is always to
+     specify some source line.
 
      Use the qualifier `thread THREADNO' with a breakpoint command to
      specify that you only want GDB to stop the program when a
@@ -4084,20 +4139,22 @@ Emacs: Emacs.
 * Menu:
 
 * List::                        Printing source lines
+* Specify Location::            How to specify code locations
 * Edit::                        Editing source files
 * Search::                      Searching source files
 * Source Path::                 Specifying source directories
 * Machine Code::                Source and machine code
 
 
-File: gdb.info,  Node: List,  Next: Edit,  Up: Source
+File: gdb.info,  Node: List,  Next: Specify Location,  Up: Source
 
 7.1 Printing Source Lines
 =========================
 
 To print lines from a source file, use the `list' command (abbreviated
 `l').  By default, ten lines are printed.  There are several ways to
-specify what part of the file you want to print.
+specify what part of the file you want to print; see *Note Specify
+Location::, for the full list.
 
    Here are the forms of the `list' command most commonly used:
 
@@ -4136,14 +4193,19 @@ up in the source file.
 
    In general, the `list' command expects you to supply zero, one or two
 "linespecs".  Linespecs specify source lines; there are several ways of
-writing them, but the effect is always to specify some source line.
-Here is a complete description of the possible arguments for `list':
+writing them (*note Specify Location::), but the effect is always to
+specify some source line.
+
+   Here is a complete description of the possible arguments for `list':
 
 `list LINESPEC'
      Print lines centered around the line specified by LINESPEC.
 
 `list FIRST,LAST'
      Print lines from FIRST to LAST.  Both arguments are linespecs.
+     When a `list' command has two linespecs, and the source file of
+     the second linespec is omitted, this refers to the same source
+     file as the first linespec.
 
 `list ,LAST'
      Print lines ending with LAST.
@@ -4160,78 +4222,112 @@ Here is a complete description of the possible arguments for `list':
 `list'
      As described in the preceding table.
 
-   Here are the ways of specifying a single source line--all the kinds
-of linespec.
+
+File: gdb.info,  Node: Specify Location,  Next: Edit,  Prev: List,  Up: Source
 
-`NUMBER'
-     Specifies line NUMBER of the current source file.  When a `list'
-     command has two linespecs, this refers to the same source file as
-     the first linespec.
+7.2 Specifying a Location
+=========================
 
-`+OFFSET'
-     Specifies the line OFFSET lines after the last line printed.  When
-     used as the second linespec in a `list' command that has two, this
-     specifies the line OFFSET lines down from the first linespec.
+Several GDB commands accept arguments that specify a location of your
+program's code.  Since GDB is a source-level debugger, a location
+usually specifies some line in the source code; for that reason,
+locations are also known as "linespecs".
+
+   Here are all the different ways of specifying a code location that
+GDB understands:
+
+`LINENUM'
+     Specifies the line number LINENUM of the current source file.
 
 `-OFFSET'
-     Specifies the line OFFSET lines before the last line printed.
+`+OFFSET'
+     Specifies the line OFFSET lines before or after the "current
+     line".  For the `list' command, the current line is the last one
+     printed; for the breakpoint commands, this is the line at which
+     execution stopped in the currently selected "stack frame" (*note
+     Frames: Frames, for a description of stack frames.)  When used as
+     the second of the two linespecs in a `list' command, this
+     specifies the line OFFSET lines up or down from the first linespec.
 
-`FILENAME:NUMBER'
-     Specifies line NUMBER in the source file FILENAME.
+`FILENAME:LINENUM'
+     Specifies the line LINENUM in the source file FILENAME.
 
 `FUNCTION'
      Specifies the line that begins the body of the function FUNCTION.
-     For example: in C, this is the line with the open brace.
+     For example, in C, this is the line with the open brace.
 
 `FILENAME:FUNCTION'
-     Specifies the line of the open-brace that begins the body of the
-     function FUNCTION in the file FILENAME.  You only need the file
-     name with a function name to avoid ambiguity when there are
-     identically named functions in different source files.
+     Specifies the line that begins the body of the function FUNCTION
+     in the file FILENAME.  You only need the file name with a function
+     name to avoid ambiguity when there are identically named functions
+     in different source files.
 
 `*ADDRESS'
-     Specifies the line containing the program address ADDRESS.
-     ADDRESS may be any expression.
+     Specifies the program address ADDRESS.  For line-oriented
+     commands, such as `list' and `edit', this specifies a source line
+     that contains ADDRESS.  For `break' and other breakpoint oriented
+     commands, this can be used to set breakpoints in parts of your
+     program which do not have debugging information or source files.
+
+     Here ADDRESS may be any expression valid in the current working
+     language (*note working language: Languages.) that specifies a code
+     address.  In addition, as a convenience, GDB extends the semantics
+     of expressions used in locations to cover the situations that
+     frequently happen during debugging.  Here are the various forms of
+     ADDRESS:
+
+    `EXPRESSION'
+          Any expression valid in the current working language.
+
+    `FUNCADDR'
+          An address of a function or procedure derived from its name.
+          In C, C++, Java, Objective-C, Fortran, minimal, and assembly,
+          this is simply the function's name FUNCTION (and actually a
+          special case of a valid expression).  In Pascal and Modula-2,
+          this is `&FUNCTION'.  In Ada, this is `FUNCTION'Address'
+          (although the Pascal form also works).
+
+          This form specifies the address of the function's first
+          instruction, before the stack frame and arguments have been
+          set up.
+
+    `'FILENAME'::FUNCADDR'
+          Like FUNCADDR above, but also specifies the name of the source
+          file explicitly.  This is useful if the name of the function
+          does not specify the function unambiguously, e.g., if there
+          are several functions with identical names in different
+          source files.
+
 
 
-File: gdb.info,  Node: Edit,  Next: Search,  Prev: List,  Up: Source
+File: gdb.info,  Node: Edit,  Next: Search,  Prev: Specify Location,  Up: Source
 
-7.2 Editing Source Files
+7.3 Editing Source Files
 ========================
 
 To edit the lines in a source file, use the `edit' command.  The
 editing program of your choice is invoked with the current line set to
 the active line in the program.  Alternatively, there are several ways
 to specify what part of the file you want to print if you want to see
-other parts of the program.
+other parts of the program:
 
-   Here are the forms of the `edit' command most commonly used:
+`edit LOCATION'
+     Edit the source file specified by `location'.  Editing starts at
+     that LOCATION, e.g., at the specified source line of the specified
+     file.  *Note Specify Location::, for all the possible forms of the
+     LOCATION argument; here are the forms of the `edit' command most
+     commonly used:
 
-`edit'
-     Edit the current source file at the active line number in the
-     program.
+    `edit NUMBER'
+          Edit the current source file with NUMBER as the active line
+          number.
 
-`edit NUMBER'
-     Edit the current source file with NUMBER as the active line number.
+    `edit FUNCTION'
+          Edit the file containing FUNCTION at the beginning of its
+          definition.
 
-`edit FUNCTION'
-     Edit the file containing FUNCTION at the beginning of its
-     definition.
 
-`edit FILENAME:NUMBER'
-     Specifies line NUMBER in the source file FILENAME.
-
-`edit FILENAME:FUNCTION'
-     Specifies the line that begins the body of the function FUNCTION
-     in the file FILENAME.  You only need the file name with a function
-     name to avoid ambiguity when there are identically named functions
-     in different source files.
-
-`edit *ADDRESS'
-     Specifies the line containing the program address ADDRESS.
-     ADDRESS may be any expression.
-
-7.2.1 Choosing your Editor
+7.3.1 Choosing your Editor
 --------------------------
 
 You can customize GDB to use any editor you want (1).  By default, it
@@ -4256,7 +4352,7 @@ in the file where to start editing.
 
 File: gdb.info,  Node: Search,  Next: Source Path,  Prev: Edit,  Up: Source
 
-7.3 Searching Source Files
+7.4 Searching Source Files
 ==========================
 
 There are two commands for searching through the current source file
@@ -4278,7 +4374,7 @@ for a regular expression.
 
 File: gdb.info,  Node: Source Path,  Next: Machine Code,  Prev: Search,  Up: Source
 
-7.4 Specifying Source Directories
+7.5 Specifying Source Directories
 =================================
 
 Executable programs sometimes do not record the directories of the
@@ -4447,7 +4543,7 @@ versions of source.  You can correct the situation as follows:
 
 File: gdb.info,  Node: Machine Code,  Prev: Source Path,  Up: Source
 
-7.5 Source and Machine Code
+7.6 Source and Machine Code
 ===========================
 
 You can use the command `info line' to map source lines to program
@@ -4460,8 +4556,7 @@ as hex.
 `info line LINESPEC'
      Print the starting and ending addresses of the compiled code for
      source line LINESPEC.  You can specify source lines in any of the
-     ways understood by the `list' command (*note Printing Source
-     Lines: List.).
+     ways documented in *Note Specify Location::.
 
    For example, we can use `info line' to discover the location of the
 object code for the first line of function `m4_changequote':
@@ -5228,6 +5323,45 @@ shows that a variable `ptt' points at another variable `t', defined in
      Display the number of elements of a large array that GDB will
      print.  If the number is 0, then the printing is unlimited.
 
+`set print frame-arguments VALUE'
+     This command allows to control how the values of arguments are
+     printed when the debugger prints a frame (*note Frames::).  The
+     possible values are:
+
+    `all'
+          The values of all arguments are printed.  This is the default.
+
+    `scalars'
+          Print the value of an argument only if it is a scalar.  The
+          value of more complex arguments such as arrays, structures,
+          unions, etc, is replaced by `...'.  Here is an example where
+          only scalar arguments are shown:
+
+               #1  0x08048361 in call_me (i=3, s=..., ss=0xbf8d508c, u=..., e=green)
+                 at frame-args.c:23
+
+    `none'
+          None of the argument values are printed.  Instead, the value
+          of each argument is replaced by `...'.  In this case, the
+          example above now becomes:
+
+               #1  0x08048361 in call_me (i=..., s=..., ss=..., u=..., e=...)
+                 at frame-args.c:23
+
+     By default, all argument values are always printed.  But this
+     command can be useful in several cases.  For instance, it can be
+     used to reduce the amount of information printed in each frame,
+     making the backtrace more readable.  Also, this command can be
+     used to improve performance when displaying Ada frames, because
+     the computation of large arguments can sometimes be CPU-intensive,
+     especiallly in large applications.  Setting `print
+     frame-arguments' to `scalars' or `none' avoids this computation,
+     thus speeding up the display of each Ada frame.
+
+`show print frame-arguments'
+     Show how the value of arguments should be displayed when printing
+     a frame.
+
 `set print repeats'
      Set the threshold for suppressing display of repeated array
      elements.  When the number of consecutive identical elements of an
@@ -5897,7 +6031,7 @@ checking.  The following commands control this behaviour.
      to such memory.  The checks are only performed if there's at least
      one memory range defined.  If `off' is specified, make GDB treat
      the memory not explicitly described by the memory ranges as RAM.
-     The default value is `off'.  
+     The default value is `on'.  
 
 `show mem inaccessible-by-default'
      Show the current handling of accesses to unknown memory.
@@ -7210,219 +7344,4 @@ breakpoint support has some limitations:
      your overlay manager (and tell GDB which overlays are now mapped,
      if you are using manual overlay management), GDB will re-set its
      breakpoints properly.
-
-
-File: gdb.info,  Node: Automatic Overlay Debugging,  Next: Overlay Sample Program,  Prev: Overlay Commands,  Up: Overlays
-
-11.3 Automatic Overlay Debugging
-================================
-
-GDB can automatically track which overlays are mapped and which are
-not, given some simple co-operation from the overlay manager in the
-inferior.  If you enable automatic overlay debugging with the `overlay
-auto' command (*note Overlay Commands::), GDB looks in the inferior's
-memory for certain variables describing the current state of the
-overlays.
-
-   Here are the variables your overlay manager must define to support
-GDB's automatic overlay debugging:
-
-`_ovly_table':
-     This variable must be an array of the following structures:
-
-          struct
-          {
-            /* The overlay's mapped address.  */
-            unsigned long vma;
-
-            /* The size of the overlay, in bytes.  */
-            unsigned long size;
-
-            /* The overlay's load address.  */
-            unsigned long lma;
-
-            /* Non-zero if the overlay is currently mapped;
-               zero otherwise.  */
-            unsigned long mapped;
-          }
-
-`_novlys':
-     This variable must be a four-byte signed integer, holding the total
-     number of elements in `_ovly_table'.
-
-
-   To decide whether a particular overlay is mapped or not, GDB looks
-for an entry in `_ovly_table' whose `vma' and `lma' members equal the
-VMA and LMA of the overlay's section in the executable file.  When GDB
-finds a matching entry, it consults the entry's `mapped' member to
-determine whether the overlay is currently mapped.
-
-   In addition, your overlay manager may define a function called
-`_ovly_debug_event'.  If this function is defined, GDB will silently
-set a breakpoint there.  If the overlay manager then calls this
-function whenever it has changed the overlay table, this will enable
-GDB to accurately keep track of which overlays are in program memory,
-and update any breakpoints that may be set in overlays.  This will
-allow breakpoints to work even if the overlays are kept in ROM or other
-non-writable memory while they are not being executed.
-
-
-File: gdb.info,  Node: Overlay Sample Program,  Prev: Automatic Overlay Debugging,  Up: Overlays
-
-11.4 Overlay Sample Program
-===========================
-
-When linking a program which uses overlays, you must place the overlays
-at their load addresses, while relocating them to run at their mapped
-addresses.  To do this, you must write a linker script (*note Overlay
-Description: (ld.info)Overlay Description.).  Unfortunately, since
-linker scripts are specific to a particular host system, target
-architecture, and target memory layout, this manual cannot provide
-portable sample code demonstrating GDB's overlay support.
-
-   However, the GDB source distribution does contain an overlaid
-program, with linker scripts for a few systems, as part of its test
-suite.  The program consists of the following files from
-`gdb/testsuite/gdb.base':
-
-`overlays.c'
-     The main program file.
-
-`ovlymgr.c'
-     A simple overlay manager, used by `overlays.c'.
-
-`foo.c'
-`bar.c'
-`baz.c'
-`grbx.c'
-     Overlay modules, loaded and used by `overlays.c'.
-
-`d10v.ld'
-`m32r.ld'
-     Linker scripts for linking the test program on the `d10v-elf' and
-     `m32r-elf' targets.
-
-   You can build the test program using the `d10v-elf' GCC
-cross-compiler like this:
-
-     $ d10v-elf-gcc -g -c overlays.c
-     $ d10v-elf-gcc -g -c ovlymgr.c
-     $ d10v-elf-gcc -g -c foo.c
-     $ d10v-elf-gcc -g -c bar.c
-     $ d10v-elf-gcc -g -c baz.c
-     $ d10v-elf-gcc -g -c grbx.c
-     $ d10v-elf-gcc -g overlays.o ovlymgr.o foo.o bar.o \
-                       baz.o grbx.o -Wl,-Td10v.ld -o overlays
-
-   The build process is identical for any other architecture, except
-that you must substitute the appropriate compiler and linker script for
-the target system for `d10v-elf-gcc' and `d10v.ld'.
-
-
-File: gdb.info,  Node: Languages,  Next: Symbols,  Prev: Overlays,  Up: Top
-
-12 Using GDB with Different Languages
-*************************************
-
-Although programming languages generally have common aspects, they are
-rarely expressed in the same manner.  For instance, in ANSI C,
-dereferencing a pointer `p' is accomplished by `*p', but in Modula-2,
-it is accomplished by `p^'.  Values can also be represented (and
-displayed) differently.  Hex numbers in C appear as `0x1ae', while in
-Modula-2 they appear as `1AEH'.
-
-   Language-specific information is built into GDB for some languages,
-allowing you to express operations like the above in your program's
-native language, and allowing GDB to output values in a manner
-consistent with the syntax of your program's native language.  The
-language you use to build expressions is called the "working language".
-
-* Menu:
-
-* Setting::                     Switching between source languages
-* Show::                        Displaying the language
-* Checks::                      Type and range checks
-* Supported Languages::         Supported languages
-* Unsupported Languages::       Unsupported languages
-
-
-File: gdb.info,  Node: Setting,  Next: Show,  Up: Languages
-
-12.1 Switching Between Source Languages
-=======================================
-
-There are two ways to control the working language--either have GDB set
-it automatically, or select it manually yourself.  You can use the `set
-language' command for either purpose.  On startup, GDB defaults to
-setting the language automatically.  The working language is used to
-determine how expressions you type are interpreted, how values are
-printed, etc.
-
-   In addition to the working language, every source file that GDB
-knows about has its own working language.  For some object file
-formats, the compiler might indicate which language a particular source
-file is in.  However, most of the time GDB infers the language from the
-name of the file.  The language of a source file controls whether C++
-names are demangled--this way `backtrace' can show each frame
-appropriately for its own language.  There is no way to set the
-language of a source file from within GDB, but you can set the language
-associated with a filename extension.  *Note Displaying the Language:
-Show.
-
-   This is most commonly a problem when you use a program, such as
-`cfront' or `f2c', that generates C but is written in another language.
-In that case, make the program use `#line' directives in its C output;
-that way GDB will know the correct language of the source code of the
-original program, and will display that source code, not the generated
-C code.
-
-* Menu:
-
-* Filenames::                   Filename extensions and languages.
-* Manually::                    Setting the working language manually
-* Automatically::               Having GDB infer the source language
-
-
-File: gdb.info,  Node: Filenames,  Next: Manually,  Up: Setting
-
-12.1.1 List of Filename Extensions and Languages
-------------------------------------------------
-
-If a source file name ends in one of the following extensions, then GDB
-infers that its language is the one indicated.
-
-`.ada'
-`.ads'
-`.adb'
-`.a'
-     Ada source file.
-
-`.c'
-     C source file
-
-`.C'
-`.cc'
-`.cp'
-`.cpp'
-`.cxx'
-`.c++'
-     C++ source file
-
-`.m'
-     Objective-C source file
-
-`.f'
-`.F'
-     Fortran source file
-
-`.mod'
-     Modula-2 source file
-
-`.s'
-`.S'
-     Assembler source file.  This actually behaves almost like C, but
-     GDB does not skip over function prologues when stepping.
-
-   In addition, you may set the language associated with a filename
-extension.  *Note Displaying the Language: Show.
 
