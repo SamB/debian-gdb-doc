@@ -9,7 +9,7 @@ END-INFO-DIR-ENTRY
    This file documents the GNU debugger GDB.
 
    This is the Ninth Edition, of `Debugging with GDB: the GNU
-Source-Level Debugger' for GDB Version 6.4.50.20060511.
+Source-Level Debugger' for GDB Version 6.4.90.
 
    Copyright (C) 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996,
 1998,
@@ -684,6 +684,7 @@ reads in the executable's symbol table.
 * M2 Operators::                Built-in operators
 * Built-In Func/Proc::          Built-in functions and procedures
 * M2 Constants::                Modula-2 constants
+* M2 Types::                    Modula-2 types
 * M2 Defaults::                 Default settings for Modula-2
 * Deviations::                  Deviations from standard Modula-2
 * M2 Checks::                   Modula-2 type and range checks
@@ -794,10 +795,10 @@ increasing precedence:
 `::, .'
      GDB and Modula-2 scope operators.
 
-     _Warning:_ Sets and their operations are not yet supported, so GDB
-     treats the use of the operator `IN', or the use of operators `+',
-     `-', `*', `/', `=', , `<>', `#', `<=', and `>=' on sets as an
-     error.
+     _Warning:_ Set expressions and their operations are not yet
+     supported, so GDB treats the use of the operator `IN', or the use
+     of operators `+', `-', `*', `/', `=', , `<>', `#', `<=', and `>='
+     on sets as an error.
 
 
 File: gdb.info,  Node: Built-In Func/Proc,  Next: M2 Constants,  Prev: M2 Operators,  Up: Modula-2
@@ -909,7 +910,7 @@ below.
      GDB treats the use of procedures `INCL' and `EXCL' as an error.
 
 
-File: gdb.info,  Node: M2 Constants,  Next: M2 Defaults,  Prev: Built-In Func/Proc,  Up: Modula-2
+File: gdb.info,  Node: M2 Constants,  Next: M2 Types,  Prev: Built-In Func/Proc,  Up: Modula-2
 
 12.4.5.3 Constants
 ..................
@@ -948,9 +949,138 @@ ways:
    * Set constants are not yet supported.
 
 
-File: gdb.info,  Node: M2 Defaults,  Next: Deviations,  Prev: M2 Constants,  Up: Modula-2
+File: gdb.info,  Node: M2 Types,  Next: M2 Defaults,  Prev: M2 Constants,  Up: Modula-2
 
-12.4.5.4 Modula-2 defaults
+12.4.5.4 Modula-2 Types
+.......................
+
+Currently GDB can print the following data types in Modula-2 syntax:
+array types, record types, set types, pointer types, procedure types,
+enumerated types, subrange types and base types.  You can also print
+the contents of variables declared using these type.  This section
+gives a number of simple source code examples together with sample GDB
+sessions.
+
+   The first example contains the following section of code:
+
+     VAR
+        s: SET OF CHAR ;
+        r: [20..40] ;
+
+and you can request GDB to interrogate the type and value of `r' and
+`s'.
+
+     (gdb) print s
+     {'A'..'C', 'Z'}
+     (gdb) ptype s
+     SET OF CHAR
+     (gdb) print r
+     21
+     (gdb) ptype r
+     [20..40]
+
+Likewise if your source code declares `s' as:
+
+     VAR
+        s: SET ['A'..'Z'] ;
+
+then you may query the type of `s' by:
+
+     (gdb) ptype s
+     type = SET ['A'..'Z']
+
+Note that at present you cannot interactively manipulate set
+expressions using the debugger.
+
+   The following example shows how you might declare an array in
+Modula-2 and how you can interact with GDB to print its type and
+contents:
+
+     VAR
+        s: ARRAY [-10..10] OF CHAR ;
+
+     (gdb) ptype s
+     ARRAY [-10..10] OF CHAR
+
+   Note that the array handling is not yet complete and although the
+type is printed correctly, expression handling still assumes that all
+arrays have a lower bound of zero and not `-10' as in the example
+above.  Unbounded arrays are also not yet recognized in GDB.
+
+   Here are some more type related Modula-2 examples:
+
+     TYPE
+        colour = (blue, red, yellow, green) ;
+        t = [blue..yellow] ;
+     VAR
+        s: t ;
+     BEGIN
+        s := blue ;
+
+The GDB interaction shows how you can query the data type and value of
+a variable.
+
+     (gdb) print s
+     $1 = blue
+     (gdb) ptype t
+     type = [blue..yellow]
+
+In this example a Modula-2 array is declared and its contents
+displayed.  Observe that the contents are written in the same way as
+their `C' counterparts.
+
+     VAR
+        s: ARRAY [1..5] OF CARDINAL ;
+     BEGIN
+        s[1] := 1 ;
+
+     (gdb) print s
+     $1 = {1, 0, 0, 0, 0}
+     (gdb) ptype s
+     type = ARRAY [1..5] OF CARDINAL
+
+   The Modula-2 language interface to GDB also understands pointer
+types as shown in this example:
+
+     VAR
+        s: POINTER TO ARRAY [1..5] OF CARDINAL ;
+     BEGIN
+        NEW(s) ;
+        s^[1] := 1 ;
+
+and you can request that GDB describes the type of `s'.
+
+     (gdb) ptype s
+     type = POINTER TO ARRAY [1..5] OF CARDINAL
+
+   GDB handles compound types as we can see in this example.  Here we
+combine array types, record types, pointer types and subrange types:
+
+     TYPE
+        foo = RECORD
+                 f1: CARDINAL ;
+                 f2: CHAR ;
+                 f3: myarray ;
+              END ;
+
+        myarray = ARRAY myrange OF CARDINAL ;
+        myrange = [-2..2] ;
+     VAR
+        s: POINTER TO ARRAY myrange OF foo ;
+
+and you can ask GDB to describe the type of `s' as shown below.
+
+     (gdb) ptype s
+     type = POINTER TO ARRAY [-2..2] OF foo = RECORD
+         f1 : CARDINAL;
+         f2 : CHAR;
+         f3 : ARRAY [-2..2] OF CARDINAL;
+     END
+
+
+File: gdb.info,  Node: M2 Defaults,  Next: Deviations,  Prev: M2 Types,  Up: Modula-2
+
+12.4.5.5 Modula-2 defaults
 ..........................
 
 If type and range checking are set automatically by GDB, they both
@@ -966,7 +1096,7 @@ Automatically, for further details.
 
 File: gdb.info,  Node: Deviations,  Next: M2 Checks,  Prev: M2 Defaults,  Up: Modula-2
 
-12.4.5.5 Deviations from standard Modula-2
+12.4.5.6 Deviations from standard Modula-2
 ..........................................
 
 A few changes have been made to make Modula-2 programs easier to debug.
@@ -992,7 +1122,7 @@ This is done primarily via loosening its type strictness:
 
 File: gdb.info,  Node: M2 Checks,  Next: M2 Scope,  Prev: Deviations,  Up: Modula-2
 
-12.4.5.6 Modula-2 type and range checks
+12.4.5.7 Modula-2 type and range checks
 .......................................
 
      _Warning:_ in this release, GDB does not yet perform type or range
@@ -1016,7 +1146,7 @@ array index bounds, and all built-in functions and procedures.
 
 File: gdb.info,  Node: M2 Scope,  Next: GDB/M2,  Prev: M2 Checks,  Up: Modula-2
 
-12.4.5.7 The scope operators `::' and `.'
+12.4.5.8 The scope operators `::' and `.'
 .........................................
 
 There are a few subtle differences between the Modula-2 scope operator
@@ -1044,7 +1174,7 @@ is not an identifier in MODULE.
 
 File: gdb.info,  Node: GDB/M2,  Prev: M2 Scope,  Up: Modula-2
 
-12.4.5.8 GDB and Modula-2
+12.4.5.9 GDB and Modula-2
 .........................
 
 Some GDB commands have little use when debugging Modula-2 programs.
@@ -4654,7 +4784,7 @@ executable file without downloading, use the GDB commands `file' or
       the conditions.
      There is absolutely no warranty for GDB; type "show warranty"
      for details.
-     GDB 6.4.50.20060511, Copyright 1992 Free Software Foundation, Inc...
+     GDB 6.4.90, Copyright 1992 Free Software Foundation, Inc...
      (gdb) target hms
      Connected to remote H8/300 HMS system.
      (gdb) load t.x
