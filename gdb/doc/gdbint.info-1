@@ -40,6 +40,7 @@ the mechanisms that adapt GDB to specific hosts and targets.
 * Language Support::
 * Host Definition::
 * Target Architecture Definition::
+* Target Descriptions::
 * Target Vector Definition::
 * Native Debugging::
 * Support Libraries::
@@ -175,8 +176,8 @@ have to include all three kinds of information.
 
 The GDB source directory has a mostly flat structure--there are only a
 few subdirectories.  A file's name usually gives a hint as to what it
-does; for example, `stabsread.c' reads stabs, `dwarfread.c' reads
-DWARF, etc.
+does; for example, `stabsread.c' reads stabs, `dwarf2read.c' reads
+DWARF 2, etc.
 
    Files that are related to some common task have names that share
 common substrings.  For example, `*-thread.c' files deal with debugging
@@ -237,7 +238,7 @@ called functions.
    GDB's frame model, a fresh design, was implemented with the need to
 support DWARF's Call Frame Information in mind.  In fact, the term
 "unwind" is taken directly from that specification.  Developers wishing
-to learn more about unwinders, are encouraged to read the the DWARF
+to learn more about unwinders, are encouraged to read the DWARF
 specification.
 
    GDB's model is that you find a frame's registers by "unwinding" them
@@ -474,7 +475,7 @@ much of the interesting breakpoint action is in `infrun.c'.
 
      For example, the remote target `Z0' packet does not require
      shadowing memory, so `shadow_len' is left at zero.  However, the
-     length reported by `BREAKPOINT_FROM_PC' is cached in
+     length reported by `gdbarch_breakpoint_from_pc' is cached in
      `placed_size', so that a matching `z0' packet can be used to
      remove the breakpoint.
 
@@ -507,12 +508,12 @@ and for stopping at the target of the jump, if we are stepping.  This
 is done with a few specialized internal breakpoints, which are visible
 in the output of the `maint info breakpoint' command.
 
-   To make this work, you need to define a macro called
-`GET_LONGJMP_TARGET', which will examine the `jmp_buf' structure and
-extract the longjmp target address.  Since `jmp_buf' is target
-specific, you will need to define it in the appropriate `tm-TARGET.h'
-file.  Look in `tm-sun4os4.h' and `sparc-tdep.c' for examples of how to
-do this.
+   To make this work, you need to define a function called
+`gdbarch_get_longjmp_target', which will examine the `jmp_buf'
+structure and extract the longjmp target address.  Since `jmp_buf' is
+target specific, you will need to define it in the appropriate
+`tm-TARGET.h' file.  Look in `tm-sun4os4.h' and `sparc-tdep.c' for
+examples of how to do this.
 
 3.9 Watchpoints
 ===============
@@ -613,8 +614,8 @@ watchpoints:
      If defined to a non-zero value, it is not necessary to disable a
      watchpoint to step over it.
 
-`HAVE_NONSTEPPABLE_WATCHPOINT'
-     If defined to a non-zero value, GDB should disable a watchpoint to
+`int gdbarch_have_nonsteppable_watchpoint (GDBARCH)'
+     If it returns a non-zero value, GDB should disable a watchpoint to
      step the inferior over it.
 
 `HAVE_CONTINUABLE_WATCHPOINT'
@@ -886,7 +887,7 @@ it is created.
 
    The first time a command is used the user will be warned and offered
 a replacement (if one exists). Note that the replacement string passed
-to `deprecate_cmd' should be the full name of the command, i.e. the
+to `deprecate_cmd' should be the full name of the command, i.e., the
 entire string the user should type at the command line.
 
 4.2 UI-Independent Output--the `ui_out' Functions
@@ -1094,7 +1095,7 @@ output fields between them.
           (struct ui_out *UIOUT, const char *ID)
      Similar to `make_cleanup_ui_out_tuple_begin_end', this function
      opens a list and then establishes cleanup (*note Cleanups: Coding.)
-     that will close the list.list.
+     that will close the list.
 
 4.2.4 Item Output Functions
 ---------------------------
@@ -1301,7 +1302,7 @@ a table.
          {
           if (nr_printable_breakpoints > 0)
             annotate_field (4);
-          if (TARGET_ADDR_BIT <= 32)
+          if (gdbarch_addr_bit (current_gdbarch) <= 32)
             ui_out_table_header (uiout, 10, ui_left, "addr", "Address");/* 5 */
           else
             ui_out_table_header (uiout, 18, ui_left, "addr", "Address");/* 5 */
@@ -1844,13 +1845,7 @@ many of COFF's limitations.
 SOM is HP's object file and debug format (not to be confused with IBM's
 SOM, which is a cross-language ABI).
 
-   The SOM reader is in `hpread.c'.
-
-6.4.8 Other File Formats
-------------------------
-
-Other file formats that have been supported by GDB include Netware
-Loadable Modules (`nlmread.c').
+   The SOM reader is in `somread.c'.
 
 6.5 Debugging File Formats
 ==========================
@@ -1881,22 +1876,14 @@ ECOFF includes a definition of a special debug format.
 
    The file `mdebugread.c' implements reading for this format.
 
-6.5.4 DWARF 1
--------------
-
-DWARF 1 is a debugging format that was originally designed to be used
-with ELF in SVR4 systems.
-
-   The DWARF 1 reader is in `dwarfread.c'.
-
-6.5.5 DWARF 2
+6.5.4 DWARF 2
 -------------
 
 DWARF 2 is an improved but incompatible version of DWARF 1.
 
    The DWARF 2 reader is in `dwarf2read.c'.
 
-6.5.6 SOM
+6.5.5 SOM
 ---------
 
 Like COFF, the SOM definition includes debugging information.
@@ -2267,7 +2254,7 @@ indicated) are:
      Define this to override the defaults of `__volatile__' or `/**/'.
 
 
-File: gdbint.info,  Node: Target Architecture Definition,  Next: Target Vector Definition,  Prev: Host Definition,  Up: Top
+File: gdbint.info,  Node: Target Architecture Definition,  Next: Target Descriptions,  Prev: Host Definition,  Up: Top
 
 9 Target Architecture Definition
 ********************************
@@ -2278,6 +2265,24 @@ programs GDB can work with, and how it works with them.
    The target architecture object is implemented as the C structure
 `struct gdbarch *'.  The structure, and its methods, are generated
 using the Bourne shell script `gdbarch.sh'.
+
+* Menu:
+
+* OS ABI Variant Handling::
+* Initialize New Architecture::
+* Registers and Memory::
+* Pointers and Addresses::
+* Address Classes::
+* Raw and Virtual Registers::
+* Register and Memory Data::
+* Frame Interpretation::
+* Inferior Call Setup::
+* Compiler Characteristics::
+* Target Conditionals::
+* Adding a New Target::
+
+
+File: gdbint.info,  Node: OS ABI Variant Handling,  Next: Initialize New Architecture,  Up: Target Architecture Definition
 
 9.1 Operating System ABI Variant Handling
 =========================================
@@ -2303,56 +2308,71 @@ sections known to be used by several operating systems.
 selected OS ABI.  There may be only one handler for a given OS ABI for
 each BFD architecture.
 
-   The following OS ABI variants are defined in `osabi.h':
+   The following OS ABI variants are defined in `defs.h':
+
+`GDB_OSABI_UNINITIALIZED'
+     Used for struct gdbarch_info if ABI is still uninitialized.
 
 `GDB_OSABI_UNKNOWN'
      The ABI of the inferior is unknown.  The default `gdbarch'
      settings for the architecture will be used.
 
 `GDB_OSABI_SVR4'
-     UNIX System V Release 4
+     UNIX System V Release 4.
 
 `GDB_OSABI_HURD'
-     GNU using the Hurd kernel
+     GNU using the Hurd kernel.
 
 `GDB_OSABI_SOLARIS'
-     Sun Solaris
+     Sun Solaris.
 
 `GDB_OSABI_OSF1'
-     OSF/1, including Digital UNIX and Compaq Tru64 UNIX
+     OSF/1, including Digital UNIX and Compaq Tru64 UNIX.
 
 `GDB_OSABI_LINUX'
-     GNU using the Linux kernel
+     GNU using the Linux kernel.
 
 `GDB_OSABI_FREEBSD_AOUT'
-     FreeBSD using the a.out executable format
+     FreeBSD using the `a.out' executable format.
 
 `GDB_OSABI_FREEBSD_ELF'
-     FreeBSD using the ELF executable format
+     FreeBSD using the ELF executable format.
 
 `GDB_OSABI_NETBSD_AOUT'
-     NetBSD using the a.out executable format
+     NetBSD using the `a.out' executable format.
 
 `GDB_OSABI_NETBSD_ELF'
-     NetBSD using the ELF executable format
+     NetBSD using the ELF executable format.
+
+`GDB_OSABI_OPENBSD_ELF'
+     OpenBSD using the ELF executable format.
 
 `GDB_OSABI_WINCE'
-     Windows CE
+     Windows CE.
 
 `GDB_OSABI_GO32'
-     DJGPP
+     DJGPP.
 
-`GDB_OSABI_NETWARE'
-     Novell NetWare
+`GDB_OSABI_IRIX'
+     Irix.
 
-`GDB_OSABI_ARM_EABI_V1'
-     ARM Embedded ABI version 1
+`GDB_OSABI_INTERIX'
+     Interix (Posix layer for MS-Windows systems).
 
-`GDB_OSABI_ARM_EABI_V2'
-     ARM Embedded ABI version 2
+`GDB_OSABI_HPUX_ELF'
+     HP/UX using the ELF executable format.
 
-`GDB_OSABI_ARM_APCS'
-     Generic ARM Procedure Call Standard
+`GDB_OSABI_HPUX_SOM'
+     HP/UX using the SOM executable format.
+
+`GDB_OSABI_QNXNTO'
+     QNX Neutrino.
+
+`GDB_OSABI_CYGWIN'
+     Cygwin.
+
+`GDB_OSABI_AIX'
+     AIX.
 
 
    Here are the functions that make up the OS ABI framework:
@@ -2392,6 +2412,16 @@ each BFD architecture.
      architecture, a warning will be issued and the debugging session
      will continue with the defaults already established for GDBARCH.
 
+ -- Function: void generic_elf_osabi_sniff_abi_tag_sections (bfd *ABFD,
+          asection *SECT, void *OBJ)
+     Helper routine for ELF file sniffers.  Examine the file described
+     by ABFD and look at ABI tag note sections to determine the OS ABI
+     from the note.  This function should be called via
+     `bfd_map_over_sections'.
+
+
+File: gdbint.info,  Node: Initialize New Architecture,  Next: Registers and Memory,  Prev: OS ABI Variant Handling,  Up: Target Architecture Definition
+
 9.2 Initializing a New Architecture
 ===================================
 
@@ -2424,6 +2454,9 @@ be collected from the first element on ARCHES.  However, GDB now fills
 in INFO more thoroughly, so new `gdbarch' initialization functions
 should not take defaults from ARCHES.
 
+
+File: gdbint.info,  Node: Registers and Memory,  Next: Pointers and Addresses,  Prev: Initialize New Architecture,  Up: Target Architecture Definition
+
 9.3 Registers and Memory
 ========================
 
@@ -2435,10 +2468,13 @@ register may have a different size.
 of which registers are which; however, it is critical that they do
 match up accurately.  The only way to make this work is to get accurate
 information about the order that the compiler uses, and to reflect that
-in the `REGISTER_NAME' and related macros.
+in the `gdbarch_register_name' and related functions.
 
    GDB can handle big-endian, little-endian, and bi-endian
 architectures.
+
+
+File: gdbint.info,  Node: Pointers and Addresses,  Next: Address Classes,  Prev: Registers and Memory,  Up: Target Architecture Definition
 
 9.4 Pointers Are Not Always Addresses
 =====================================
@@ -2535,13 +2571,13 @@ architecture-independent code.
      This function performs architecture-specific conversions as
      described above for `store_typed_address'.
 
-   Here are some macros which architectures can define to indicate the
+   Here are two functions which architectures can define to indicate the
 relationship between pointers and addresses.  These have default
 definitions, appropriate for architectures on which all pointers are
 simple unsigned byte addresses.
 
- -- Target Macro: CORE_ADDR POINTER_TO_ADDRESS (struct type *TYPE, char
-          *BUF)
+ -- Function: CORE_ADDR gdbarch_pointer_to_address (struct gdbarch
+          *CURRENT_GDBARCH, struct type *TYPE, char *BUF)
      Assume that BUF holds a pointer of type TYPE, in the appropriate
      format for the current architecture.  Return the byte address the
      pointer refers to.
@@ -2549,13 +2585,24 @@ simple unsigned byte addresses.
      This function may safely assume that TYPE is either a pointer or a
      C++ reference type.
 
- -- Target Macro: void ADDRESS_TO_POINTER (struct type *TYPE, char
-          *BUF, CORE_ADDR ADDR)
+ -- Function: void gdbarch_address_to_pointer (struct gdbarch
+          *CURRENT_GDBARCH, struct type *TYPE, char *BUF, CORE_ADDR
+          ADDR)
      Store in BUF a pointer of type TYPE representing the address ADDR,
      in the appropriate format for the current architecture.
 
      This function may safely assume that TYPE is either a pointer or a
      C++ reference type.
+
+   ---------- Footnotes ----------
+
+   (1) Some D10V instructions are actually pairs of 16-bit
+sub-instructions.  However, since you can't jump into the middle of
+such a pair, code addresses can only refer to full 32 bit instructions,
+which is what matters in this explanation.
+
+
+File: gdbint.info,  Node: Address Classes,  Next: Raw and Virtual Registers,  Prev: Pointers and Addresses,  Up: Target Architecture Definition
 
 9.5 Address Classes
 ===================
@@ -2570,33 +2617,33 @@ macros should be defined in order to disambiguate these types within
 GDB as well as provide the added information to a GDB user when
 printing type expressions.
 
- -- Target Macro: int ADDRESS_CLASS_TYPE_FLAGS (int BYTE_SIZE, int
-          DWARF2_ADDR_CLASS)
+ -- Function: int gdbarch_address_class_type_flags (struct gdbarch
+          *CURRENT_GDBARCH, int BYTE_SIZE, int DWARF2_ADDR_CLASS)
      Returns the type flags needed to construct a pointer type whose
      size is BYTE_SIZE and whose address class is DWARF2_ADDR_CLASS.
      This function is normally called from within a symbol reader.  See
      `dwarf2read.c'.
 
- -- Target Macro: char *ADDRESS_CLASS_TYPE_FLAGS_TO_NAME (int
-          TYPE_FLAGS)
+ -- Function: char *gdbarch_address_class_type_flags_to_name (struct
+          gdbarch *CURRENT_GDBARCH, int TYPE_FLAGS)
      Given the type flags representing an address class qualifier,
      return its name.
 
- -- Target Macro: int ADDRESS_CLASS_NAME_to_TYPE_FLAGS (int NAME, int
-          *vartype_flags_ptr)
-     Given an address qualifier name, set the `int' refererenced by
+ -- Function: int gdbarch_address_class_name_to_type_flags (struct
+          gdbarch *CURRENT_GDBARCH, int NAME, int *vartype_flags_ptr)
+     Given an address qualifier name, set the `int' referenced by
      TYPE_FLAGS_PTR to the type flags for that address class qualifier.
 
    Since the need for address classes is rather rare, none of the
-address class macros defined by default.  Predicate macros are provided
-to detect when they are defined.
+address class functions are defined by default.  Predicate functions
+are provided to detect when they are defined.
 
    Consider a hypothetical architecture in which addresses are normally
 32-bits wide, but 16-bit addresses are also supported.  Furthermore,
 suppose that the DWARF 2 information for this architecture simply uses
 a `DW_AT_byte_size' value of 2 to indicate the use of one of these
 "short" pointers.  The following functions could be defined to
-implement the address class macros:
+implement the address class functions:
 
      somearch_address_class_type_flags (int byte_size,
                                         int dwarf2_addr_class)
@@ -2636,6 +2683,9 @@ pointers, GDB might show the following behavior:
 
      (gdb) ptype short_ptr_var
      type = int * @short
+
+
+File: gdbint.info,  Node: Raw and Virtual Registers,  Next: Register and Memory Data,  Prev: Address Classes,  Up: Target Architecture Definition
 
 9.6 Raw and Virtual Register Representations
 ============================================
@@ -2736,15 +2786,18 @@ conversions between the raw and virtual format:
      Note that REGISTER_CONVERT_TO_VIRTUAL and REGISTER_CONVERT_TO_RAW
      take their REG and TYPE arguments in different orders.
 
+
+File: gdbint.info,  Node: Register and Memory Data,  Next: Frame Interpretation,  Prev: Raw and Virtual Registers,  Up: Target Architecture Definition
+
 9.7 Using Different Register and Memory Data Representations
 ============================================================
 
 _Maintainer's note: The way GDB manipulates registers is undergoing
-significant change.  Many of the macros and functions refered to in this
-section are likely to be subject to further revision.  See A.R. Index
-(http://sources.redhat.com/gdb/current/ari/) and Bug Tracking Database
-(http://www.gnu.org/software/gdb/bugs) for further information.
-cagney/2002-05-06._
+significant change.  Many of the macros and functions referred to in
+this section are likely to be subject to further revision.  See A.R.
+Index (http://sources.redhat.com/gdb/current/ari/) and Bug Tracking
+Database (http://www.gnu.org/software/gdb/bugs) for further
+information.  cagney/2002-05-06._
 
    Some architectures can represent a data object in a register using a
 form that is different to the objects more normal memory representation.
@@ -2768,71 +2821,91 @@ However, they do occasionally differ.  Your architecture may define the
 following macros to request conversions between the register and memory
 representations of a data type:
 
- -- Target Macro: int CONVERT_REGISTER_P (int REG)
+ -- Function: int gdbarch_convert_register_p (struct gdbarch *GDBARCH,
+          int REG)
      Return non-zero if the representation of a data value stored in
      this register may be different to the representation of that same
      data value when stored in memory.
 
-     When non-zero, the macros `REGISTER_TO_VALUE' and
-     `VALUE_TO_REGISTER' are used to perform any necessary conversion.
+     When non-zero, the macros `gdbarch_register_to_value' and
+     `value_to_register' are used to perform any necessary conversion.
 
- -- Target Macro: void REGISTER_TO_VALUE (int REG, struct type *TYPE,
-          char *FROM, char *TO)
+ -- Function: void gdbarch_register_to_value (struct gdbarch *GDBARCH,
+          int REG, struct type *TYPE, char *FROM, char *TO)
      Convert the value of register number REG to a data object of type
      TYPE.  The buffer at FROM holds the register's value in raw
      format; the converted value should be placed in the buffer at TO.
 
-     Note that `REGISTER_TO_VALUE' and `VALUE_TO_REGISTER' take their
-     REG and TYPE arguments in different orders.
+     Note that `gdbarch_register_to_value' and
+     `gdbarch_value_to_register' take their REG and TYPE arguments in
+     different orders.
 
-     You should only use `REGISTER_TO_VALUE' with registers for which
-     the `CONVERT_REGISTER_P' macro returns a non-zero value.
+     You should only use `gdbarch_register_to_value' with registers for
+     which the `gdbarch_convert_register_p' function returns a non-zero
+     value.
 
- -- Target Macro: void VALUE_TO_REGISTER (struct type *TYPE, int REG,
-          char *FROM, char *TO)
+ -- Function: void gdbarch_value_to_register (struct gdbarch *GDBARCH,
+          struct type *TYPE, int REG, char *FROM, char *TO)
      Convert a data value of type TYPE to register number REG' raw
      format.
 
-     Note that `REGISTER_TO_VALUE' and `VALUE_TO_REGISTER' take their
-     REG and TYPE arguments in different orders.
+     Note that `gdbarch_register_to_value' and
+     `gdbarch_value_to_register' take their REG and TYPE arguments in
+     different orders.
 
-     You should only use `VALUE_TO_REGISTER' with registers for which
-     the `CONVERT_REGISTER_P' macro returns a non-zero value.
+     You should only use `gdbarch_value_to_register' with registers for
+     which the `gdbarch_convert_register_p' function returns a non-zero
+     value.
 
  -- Target Macro: void REGISTER_CONVERT_TO_TYPE (int REGNUM, struct
           type *TYPE, char *BUF)
      See `mips-tdep.c'.  It does not do what you want.
 
+
+File: gdbint.info,  Node: Frame Interpretation,  Next: Inferior Call Setup,  Prev: Register and Memory Data,  Up: Target Architecture Definition
+
 9.8 Frame Interpretation
 ========================
+
+
+File: gdbint.info,  Node: Inferior Call Setup,  Next: Compiler Characteristics,  Prev: Frame Interpretation,  Up: Target Architecture Definition
 
 9.9 Inferior Call Setup
 =======================
 
+
+File: gdbint.info,  Node: Compiler Characteristics,  Next: Target Conditionals,  Prev: Inferior Call Setup,  Up: Target Architecture Definition
+
 9.10 Compiler Characteristics
 =============================
+
+
+File: gdbint.info,  Node: Target Conditionals,  Next: Adding a New Target,  Prev: Compiler Characteristics,  Up: Target Architecture Definition
 
 9.11 Target Conditionals
 ========================
 
-This section describes the macros that you can use to define the target
-machine.
+This section describes the macros and functions that you can use to
+define the target machine.
 
-`ADDR_BITS_REMOVE (addr)'
+`CORE_ADDR gdbarch_addr_bits_remove (GDBARCH, ADDR)'
      If a raw machine instruction address includes any bits that are not
-     really part of the address, then define this macro to expand into
-     an expression that zeroes those bits in ADDR.  This is only used
-     for addresses of instructions, and even then not in all contexts.
+     really part of the address, then this function is used to zero
+     those bits in ADDR.  This is only used for addresses of
+     instructions, and even then not in all contexts.
 
      For example, the two low-order bits of the PC on the
      Hewlett-Packard PA 2.0 architecture contain the privilege level of
      the corresponding instruction.  Since instructions must always be
      aligned on four-byte boundaries, the processor masks out these
      bits to generate the actual address of the instruction.
-     ADDR_BITS_REMOVE should filter out these bits with an expression
-     such as `((addr) & ~3)'.
+     `gdbarch_addr_bits_remove' would then for example look like that:
+          arch_addr_bits_remove (CORE_ADDR addr)
+          {
+            return (addr &= ~0x3);
+          }
 
-`ADDRESS_CLASS_NAME_TO_TYPE_FLAGS (NAME, TYPE_FLAGS_PTR)'
+`int address_class_name_to_type_flags (GDBARCH, NAME, TYPE_FLAGS_PTR)'
      If NAME is a valid address class qualifier name, set the `int'
      referenced by TYPE_FLAGS_PTR to the mask representing the qualifier
      and return 1.  If NAME is not a valid address class qualifier name,
@@ -2843,11 +2916,11 @@ machine.
      possibly some combination of these values or'd together.  *Note
      Address Classes: Target Architecture Definition.
 
-`ADDRESS_CLASS_NAME_TO_TYPE_FLAGS_P ()'
+`int address_class_name_to_type_flags_p (GDBARCH)'
      Predicate which indicates whether
-     `ADDRESS_CLASS_NAME_TO_TYPE_FLAGS' has been defined.
+     `address_class_name_to_type_flags' has been defined.
 
-`ADDRESS_CLASS_TYPE_FLAGS (BYTE_SIZE, DWARF2_ADDR_CLASS)'
+`int gdbarch_address_class_type_flags (GDBARCH, BYTE_SIZE, DWARF2_ADDR_CLASS)'
      Given a pointers byte size (as described by the debug information)
      and the possible `DW_AT_address_class' value, return the type flags
      used by GDB to represent this address class.  The value returned
@@ -2856,30 +2929,30 @@ machine.
      values or'd together.  *Note Address Classes: Target Architecture
      Definition.
 
-`ADDRESS_CLASS_TYPE_FLAGS_P ()'
-     Predicate which indicates whether `ADDRESS_CLASS_TYPE_FLAGS' has
-     been defined.
+`int gdbarch_address_class_type_flags_p (GDBARCH)'
+     Predicate which indicates whether
+     `gdbarch_address_class_type_flags_p' has been defined.
 
-`ADDRESS_CLASS_TYPE_FLAGS_TO_NAME (TYPE_FLAGS)'
+`const char *gdbarch_address_class_type_flags_to_name (GDBARCH, TYPE_FLAGS)'
      Return the name of the address class qualifier associated with the
      type flags given by TYPE_FLAGS.
 
-`ADDRESS_CLASS_TYPE_FLAGS_TO_NAME_P ()'
+`int gdbarch_address_class_type_flags_to_name_p (GDBARCH)'
      Predicate which indicates whether
-     `ADDRESS_CLASS_TYPE_FLAGS_TO_NAME' has been defined.  *Note
-     Address Classes: Target Architecture Definition.
+     `gdbarch_address_class_type_flags_to_name' has been defined.
+     *Note Address Classes: Target Architecture Definition.
 
-`ADDRESS_TO_POINTER (TYPE, BUF, ADDR)'
+`void gdbarch_address_to_pointer (GDBARCH, TYPE, BUF, ADDR)'
      Store in BUF a pointer of type TYPE representing the address ADDR,
      in the appropriate format for the current architecture.  This
-     macro may safely assume that TYPE is either a pointer or a C++
+     function may safely assume that TYPE is either a pointer or a C++
      reference type.  *Note Pointers Are Not Always Addresses: Target
      Architecture Definition.
 
-`BELIEVE_PCC_PROMOTION'
-     Define if the compiler promotes a `short' or `char' parameter to
-     an `int', but still reports the parameter as its original type,
-     rather than the promoted type.
+`int gdbarch_believe_pcc_promotion (GDBARCH)'
+     Used to notify if the compiler promotes a `short' or `char'
+     parameter to an `int', but still reports the parameter as its
+     original type, rather than the promoted type.
 
 `BITS_BIG_ENDIAN'
      Define this if the numbering of bits in the targets does *not*
@@ -2895,24 +2968,17 @@ machine.
      breakpoint must be no longer than the shortest instruction of the
      architecture.
 
-     `BREAKPOINT' has been deprecated in favor of `BREAKPOINT_FROM_PC'.
+     `BREAKPOINT' has been deprecated in favor of
+     `gdbarch_breakpoint_from_pc'.
 
 `BIG_BREAKPOINT'
 `LITTLE_BREAKPOINT'
      Similar to BREAKPOINT, but used for bi-endian targets.
 
      `BIG_BREAKPOINT' and `LITTLE_BREAKPOINT' have been deprecated in
-     favor of `BREAKPOINT_FROM_PC'.
+     favor of `gdbarch_breakpoint_from_pc'.
 
-`DEPRECATED_REMOTE_BREAKPOINT'
-`DEPRECATED_LITTLE_REMOTE_BREAKPOINT'
-`DEPRECATED_BIG_REMOTE_BREAKPOINT'
-     Specify the breakpoint instruction sequence for a remote target.
-     `DEPRECATED_REMOTE_BREAKPOINT', `DEPRECATED_BIG_REMOTE_BREAKPOINT'
-     and `DEPRECATED_LITTLE_REMOTE_BREAKPOINT' have been deprecated in
-     favor of `BREAKPOINT_FROM_PC' (*note BREAKPOINT_FROM_PC::).
-
-`BREAKPOINT_FROM_PC (PCPTR, LENPTR)'
+`const gdb_byte *gdbarch_breakpoint_from_pc (GDBARCH, PCPTR, LENPTR)'
      Use the program counter to determine the contents and size of a
      breakpoint instruction.  It returns a pointer to a string of bytes
      that encode a breakpoint instruction, stores the length of the
@@ -2927,23 +2993,23 @@ machine.
 
      Replaces all the other BREAKPOINT macros.
 
-`MEMORY_INSERT_BREAKPOINT (BP_TGT)'
-`MEMORY_REMOVE_BREAKPOINT (BP_TGT)'
+`int gdbarch_memory_insert_breakpoint (GDBARCH, BP_TGT)'
+`gdbarch_memory_remove_breakpoint (GDBARCH, BP_TGT)'
      Insert or remove memory based breakpoints.  Reasonable defaults
      (`default_memory_insert_breakpoint' and
      `default_memory_remove_breakpoint' respectively) have been
-     provided so that it is not necessary to define these for most
-     architectures.  Architectures which may want to define
-     `MEMORY_INSERT_BREAKPOINT' and `MEMORY_REMOVE_BREAKPOINT' will
-     likely have instructions that are oddly sized or are not stored in
-     a conventional manner.
+     provided so that it is not necessary to set these for most
+     architectures.  Architectures which may want to set
+     `gdbarch_memory_insert_breakpoint' and
+     `gdbarch_memory_remove_breakpoint' will likely have instructions
+     that are oddly sized or are not stored in a conventional manner.
 
      It may also be desirable (from an efficiency standpoint) to define
      custom breakpoint insertion and removal routines if
-     `BREAKPOINT_FROM_PC' needs to read the target's memory for some
-     reason.
+     `gdbarch_breakpoint_from_pc' needs to read the target's memory for
+     some reason.
 
-`ADJUST_BREAKPOINT_ADDRESS (ADDRESS)'
+`CORE_ADDR gdbarch_adjust_breakpoint_address (GDBARCH, BPADDR)'
      Given an address at which a breakpoint is desired, return a
      breakpoint address adjusted to account for architectural
      constraints on breakpoint placement.  This method is not needed by
@@ -2967,7 +3033,7 @@ machine.
      instruction at the lowest address and has nothing to do with
      execution order.)
 
-     The FR-V's `ADJUST_BREAKPOINT_ADDRESS' method will adjust a
+     The FR-V's `gdbarch_adjust_breakpoint_address' method will adjust a
      breakpoint's address by scanning backwards for the beginning of
      the bundle, returning the address of the bundle.
 
@@ -2976,44 +3042,45 @@ machine.
      breakpoint is initially set and each time that that breakpoint is
      hit.
 
-`CALL_DUMMY_LOCATION'
+`int gdbarch_call_dummy_location (GDBARCH)'
      See the file `inferior.h'.
 
-     This method has been replaced by `push_dummy_code' (*note
-     push_dummy_code::).
+     This method has been replaced by `gdbarch_push_dummy_code' (*note
+     gdbarch_push_dummy_code::).
 
-`CANNOT_FETCH_REGISTER (REGNO)'
-     A C expression that should be nonzero if REGNO cannot be fetched
+`int gdbarch_cannot_fetch_register (GDBARCH, REGUM)'
+     This function should return nonzero if REGNO cannot be fetched
      from an inferior process.  This is only relevant if
      `FETCH_INFERIOR_REGISTERS' is not defined.
 
-`CANNOT_STORE_REGISTER (REGNO)'
-     A C expression that should be nonzero if REGNO should not be
-     written to the target.  This is often the case for program
-     counters, status words, and other special registers.  If this is
-     not defined, GDB will assume that all registers may be written.
+`int gdbarch_cannot_store_register (GDBARCH, REGNUM)'
+     This function should return nonzero if REGNO should not be written
+     to the target.  This is often the case for program counters,
+     status words, and other special registers.  This function returns
+     0 as default so that GDB will assume that all registers may be
+     written.
 
-`int CONVERT_REGISTER_P(REGNUM)'
+`int gdbarch_convert_register_p (GDBARCH, REGNUM, struct type *TYPE)'
      Return non-zero if register REGNUM can represent data values in a
      non-standard form.  *Note Using Different Register and Memory Data
      Representations: Target Architecture Definition.
 
-`DECR_PC_AFTER_BREAK'
-     Define this to be the amount by which to decrement the PC after the
-     program encounters a breakpoint.  This is often the number of
-     bytes in `BREAKPOINT', though not always.  For most targets this
-     value will be 0.
+`CORE_ADDR gdbarch_decr_pc_after_break (GDBARCH)'
+     This function shall return the amount by which to decrement the PC
+     after the program encounters a breakpoint.  This is often the
+     number of bytes in `BREAKPOINT', though not always.  For most
+     targets this value will be 0.
 
 `DISABLE_UNSETTABLE_BREAK (ADDR)'
      If defined, this should evaluate to 1 if ADDR is in a shared
      library in which breakpoints cannot be set and so should be
      disabled.
 
-`PRINT_FLOAT_INFO()'
+`void gdbarch_print_float_info (GDBARCH, FILE, FRAME, ARGS)'
      If defined, then the `info float' command will print information
      about the processor's floating point unit.
 
-`print_registers_info (GDBARCH, FRAME, REGNUM, ALL)'
+`void gdbarch_print_registers_info (GDBARCH, FRAME, REGNUM, ALL)'
      If defined, pretty print the value of the register REGNUM for the
      specified FRAME.  If the value of REGNUM is -1, pretty print
      either all registers (ALL is non zero) or a select subset of
@@ -3022,30 +3089,26 @@ machine.
      The default method prints one register per line, and if ALL is
      zero omits floating-point registers.
 
-`PRINT_VECTOR_INFO()'
+`int gdbarch_print_vector_info (GDBARCH, FILE, FRAME, ARGS)'
      If defined, then the `info vector' command will call this function
      to print information about the processor's vector unit.
 
      By default, the `info vector' command will print all vector
      registers (the register's type having the vector attribute).
 
-`DWARF_REG_TO_REGNUM'
-     Convert DWARF register number into GDB regnum.  If not defined, no
-     conversion will be performed.
+`int gdbarch_dwarf_reg_to_regnum (GDBARCH, DWARF_REGNR)'
+     Convert DWARF register number DWARF_REGNR into GDB regnum.  If not
+     defined, no conversion will be performed.
 
-`DWARF2_REG_TO_REGNUM'
-     Convert DWARF2 register number into GDB regnum.  If not defined,
-     no conversion will be performed.
+`int gdbarch_dwarf2_reg_to_regnum (GDBARCH, DWARF2_REGNR)'
+     Convert DWARF2 register number DWARF2_REGNR into GDB regnum.  If
+     not defined, no conversion will be performed.
 
-`ECOFF_REG_TO_REGNUM'
-     Convert ECOFF register number into GDB regnum.  If not defined, no
-     conversion will be performed.
+`int gdbarch_ecoff_reg_to_regnum (GDBARCH, ECOFF_REGNR)'
+     Convert ECOFF register number  ECOFF_REGNR into GDB regnum.  If
+     not defined, no conversion will be performed.
 
-`END_OF_TEXT_DEFAULT'
-     This is an expression that should designate the end of the text
-     section.
-
-`EXTRACT_RETURN_VALUE(TYPE, REGBUF, VALBUF)'
+`void gdbarch_extract_return_value (GDBARCH, TYPE, REGBUF, VALBUF)'
      Define this to extract a function's return value of type TYPE from
      the raw register state REGBUF and copy that, in virtual format,
      into VALBUF.
@@ -3076,30 +3139,30 @@ machine.
      invocation represented by FI does not have a stack frame
      associated with it.  Otherwise return 0.
 
-`frame_align (ADDRESS)'
+`CORE_ADDR frame_align (GDBARCH, ADDRESS)'
      Define this to adjust ADDRESS so that it meets the alignment
      requirements for the start of a new stack frame.  A stack frame's
      alignment requirements are typically stronger than a target
-     processors stack alignment requirements (*note
-     DEPRECATED_STACK_ALIGN::).
+     processors stack alignment requirements.
 
      This function is used to ensure that, when creating a dummy frame,
      both the initial stack pointer and (if needed) the address of the
      return value are correctly aligned.
 
-     Unlike `DEPRECATED_STACK_ALIGN', this function always adjusts the
-     address in the direction of stack growth.
+     This function always adjusts the address in the direction of stack
+     growth.
 
      By default, no frame based stack alignment is performed.
 
-`int frame_red_zone_size'
+`int gdbarch_frame_red_zone_size (GDBARCH)'
      The number of bytes, beyond the innermost-stack-address, reserved
      by the ABI.  A function is permitted to use this scratch area
      (instead of allocating extra stack space).
 
      When performing an inferior function call, to ensure that it does
      not modify this area, GDB adjusts the innermost-stack-address by
-     FRAME_RED_ZONE_SIZE bytes before pushing parameters onto the stack.
+     GDBARCH_FRAME_RED_ZONE_SIZE bytes before pushing parameters onto
+     the stack.
 
      By default, zero bytes are allocated.  The value must be aligned
      (*note frame_align::).
@@ -3126,41 +3189,41 @@ machine.
 
      `FRAME_FIND_SAVED_REGS' is deprecated.
 
-`FRAME_NUM_ARGS (FI)'
-     For the frame described by FI return the number of arguments that
-     are being passed.  If the number of arguments is not known, return
-     `-1'.
+`int gdbarch_frame_num_args (GDBARCH, FRAME)'
+     For the frame described by FRAME return the number of arguments
+     that are being passed.  If the number of arguments is not known,
+     return `-1'.
 
 `DEPRECATED_FRAME_SAVED_PC(FRAME)'
      Given FRAME, return the pc saved there.  This is the return
      address.
 
-     This method is deprecated. *Note unwind_pc::.
+     This method is deprecated. *Note gdbarch_unwind_pc::.
 
-`CORE_ADDR unwind_pc (struct frame_info *THIS_FRAME)'
-     Return the instruction address, in THIS_FRAME's caller, at which
-     execution will resume after THIS_FRAME returns.  This is commonly
-     refered to as the return address.
+`CORE_ADDR gdbarch_unwind_pc (NEXT_FRAME)'
+     Return the instruction address, in NEXT_FRAME's caller, at which
+     execution will resume after NEXT_FRAME returns.  This is commonly
+     referred to as the return address.
 
      The implementation, which must be frame agnostic (work with any
      frame), is typically no more than:
 
           ULONGEST pc;
-          frame_unwind_unsigned_register (this_frame, D10V_PC_REGNUM, &pc);
-          return d10v_make_iaddr (pc);
+          pc = frame_unwind_unsigned_register (next_frame, S390_PC_REGNUM);
+          return gdbarch_addr_bits_remove (gdbarch, pc);
 
      *Note DEPRECATED_FRAME_SAVED_PC::, which this method replaces.
 
-`CORE_ADDR unwind_sp (struct frame_info *THIS_FRAME)'
+`CORE_ADDR gdbarch_unwind_sp (GDBARCH, NEXT_FRAME)'
      Return the frame's inner most stack address.  This is commonly
-     refered to as the frame's "stack pointer".
+     referred to as the frame's "stack pointer".
 
      The implementation, which must be frame agnostic (work with any
      frame), is typically no more than:
 
           ULONGEST sp;
-          frame_unwind_unsigned_register (this_frame, D10V_SP_REGNUM, &sp);
-          return d10v_make_daddr (sp);
+          sp = frame_unwind_unsigned_register (next_frame, S390_SP_REGNUM);
+          return gdbarch_addr_bits_remove (gdbarch, sp);
 
      *Note TARGET_READ_SP::, which this method replaces.
 
@@ -3191,22 +3254,7 @@ machine.
      `gcc_compiled.' and `gcc2_compiled.', respectively.  (Currently
      only defined for the Delta 68.)
 
-`GDB_MULTI_ARCH'
-     If defined and non-zero, enables support for multiple architectures
-     within GDB.
-
-     This support can be enabled at two levels.  At level one, only
-     definitions for previously undefined macros are provided; at level
-     two, a multi-arch definition of all architecture dependent macros
-     will be defined.
-
-`GDB_TARGET_IS_HPPA'
-     This determines whether horrible kludge code in `dbxread.c' and
-     `partial-stab.h' is used to mangle multiple-symbol-table files from
-     HPPA's.  This should all be ripped out, and a scheme like
-     `elfread.c' used instead.
-
-`GET_LONGJMP_TARGET'
+`gdbarch_get_longjmp_target'
      For most machines, this is a target-dependent parameter.  On the
      DECstation and the Iris, this is a native-dependent parameter,
      since the header file `setjmp.h' is needed to define it.
@@ -3216,10 +3264,6 @@ machine.
      breakpoint.  It takes a `CORE_ADDR *' as argument, and stores the
      target PC value through this pointer.  It examines the current
      state of the machine as needed.
-
-`DEPRECATED_GET_SAVED_REGISTER'
-     Define this if you need to supply your own definition for the
-     function `DEPRECATED_GET_SAVED_REGISTER'.
 
 `DEPRECATED_IBM6000_TARGET'
      Shows that we are configured for an IBM RS/6000 system.  This
@@ -3232,53 +3276,24 @@ machine.
      watchpoint support; see *Note I386_USE_GENERIC_WATCHPOINTS:
      Algorithms.
 
-`SYMBOLS_CAN_START_WITH_DOLLAR'
-     Some systems have routines whose names start with `$'.  Giving this
-     macro a non-zero value tells GDB's expression parser to check for
-     such routines when parsing tokens that begin with `$'.
-
-     On HP-UX, certain system routines (millicode) have names beginning
-     with `$' or `$$'.  For example, `$$dyncall' is a millicode routine
-     that handles inter-space procedure calls on PA-RISC.
-
-`DEPRECATED_INIT_EXTRA_FRAME_INFO (FROMLEAF, FRAME)'
-     If additional information about the frame is required this should
-     be stored in `frame->extra_info'.  Space for `frame->extra_info'
-     is allocated using `frame_extra_info_zalloc'.
-
-`DEPRECATED_INIT_FRAME_PC (FROMLEAF, PREV)'
-     This is a C statement that sets the pc of the frame pointed to by
-     PREV.  [By default...]
-
-`INNER_THAN (LHS, RHS)'
+`int gdbarch_inner_than (GDBARCH, LHS, RHS)'
      Returns non-zero if stack address LHS is inner than (nearer to the
-     stack top) stack address RHS. Define this as `lhs < rhs' if the
-     target's stack grows downward in memory, or `lhs > rsh' if the
-     stack grows upward.
+     stack top) stack address RHS.  Let the function return `lhs < rhs'
+     if the target's stack grows downward in memory, or `lhs > rsh' if
+     the stack grows upward.
 
-`gdbarch_in_function_epilogue_p (GDBARCH, PC)'
-     Returns non-zero if the given PC is in the epilogue of a function.
-     The epilogue of a function is defined as the part of a function
-     where the stack frame of the function already has been destroyed
-     up to the final `return from function call' instruction.
+`gdbarch_in_function_epilogue_p (GDBARCH, ADDR)'
+     Returns non-zero if the given ADDR is in the epilogue of a
+     function.  The epilogue of a function is defined as the part of a
+     function where the stack frame of the function already has been
+     destroyed up to the final `return from function call' instruction.
 
-`DEPRECATED_SIGTRAMP_START (PC)'
-`DEPRECATED_SIGTRAMP_END (PC)'
-     Define these to be the start and end address of the `sigtramp' for
-     the given PC.  On machines where the address is just a compile time
-     constant, the macro expansion will typically just ignore the
-     supplied PC.
-
-`IN_SOLIB_CALL_TRAMPOLINE (PC, NAME)'
-     Define this to evaluate to nonzero if the program is stopped in the
-     trampoline that connects to a shared library.
-
-`IN_SOLIB_RETURN_TRAMPOLINE (PC, NAME)'
-     Define this to evaluate to nonzero if the program is stopped in the
-     trampoline that returns from a shared library.
+`int gdbarch_in_solib_return_trampoline (GDBARCH, PC, NAME)'
+     Define this function to return nonzero if the program is stopped
+     in the trampoline that returns from a shared library.
 
 `IN_SOLIB_DYNSYM_RESOLVE_CODE (PC)'
-     Define this to evaluate to nonzero if the program is stopped in the
+     Define this to return nonzero if the program is stopped in the
      dynamic linker.
 
 `SKIP_SOLIB_RESOLVER (PC)'
@@ -3288,7 +3303,7 @@ machine.
      necessary to set a breakpoint to get through the dynamic linker
      and that single stepping will suffice.
 
-`INTEGER_TO_ADDRESS (TYPE, BUF)'
+`CORE_ADDR gdbarch_integer_to_address (GDBARCH, TYPE, BUF)'
      Define this when the architecture needs to handle non-pointer to
      address conversions specially.  Converts that value to an address
      according to the current architectures conventions.
@@ -3303,35 +3318,22 @@ machine.
      been pointed out that users aren't complaining about how GDB casts
      integers to pointers; they are complaining that they can't take an
      address from a disassembly listing and give it to `x/i'.  Adding
-     an architecture method like `INTEGER_TO_ADDRESS' certainly makes
-     it possible for GDB to "get it right" in all circumstances._
+     an architecture method like `gdbarch_integer_to_address' certainly
+     makes it possible for GDB to "get it right" in all circumstances._
 
      *Note Pointers Are Not Always Addresses: Target Architecture
      Definition.
 
-`NO_HIF_SUPPORT'
-     (Specific to the a29k.)
-
-`POINTER_TO_ADDRESS (TYPE, BUF)'
+`CORE_ADDR gdbarch_pointer_to_address (GDBARCH, TYPE, BUF)'
      Assume that BUF holds a pointer of type TYPE, in the appropriate
      format for the current architecture.  Return the byte address the
      pointer refers to.  *Note Pointers Are Not Always Addresses:
      Target Architecture Definition.
 
-`REGISTER_CONVERTIBLE (REG)'
-     Return non-zero if REG uses different raw and virtual formats.
-     *Note Raw and Virtual Register Representations: Target
-     Architecture Definition.
-
-`REGISTER_TO_VALUE(REGNUM, TYPE, FROM, TO)'
+`void gdbarch_register_to_value(GDBARCH, FRAME, REGNUM, TYPE, FUR)'
      Convert the raw contents of register REGNUM into a value of type
      TYPE.  *Note Using Different Register and Memory Data
      Representations: Target Architecture Definition.
-
-`DEPRECATED_REGISTER_RAW_SIZE (REG)'
-     Return the raw size of REG; defaults to the size of the register's
-     virtual type.  *Note Raw and Virtual Register Representations:
-     Target Architecture Definition.
 
 `register_reggroup_p (GDBARCH, REGNUM, REGGROUP)'
      Return non-zero if register REGNUM is a member of the register
@@ -3366,7 +3368,7 @@ machine.
 
 `struct type *register_type (GDBARCH, REG)'
      If defined, return the type of register REG.  This function
-     superseeds `DEPRECATED_REGISTER_VIRTUAL_TYPE'.  *Note Raw and
+     supersedes `DEPRECATED_REGISTER_VIRTUAL_TYPE'.  *Note Raw and
      Virtual Register Representations: Target Architecture Definition.
 
 `REGISTER_CONVERT_TO_VIRTUAL(REG, TYPE, FROM, TO)'
@@ -3387,9 +3389,9 @@ machine.
      Define this as 1 if the target does not have a hardware single-step
      mechanism.  The macro `SOFTWARE_SINGLE_STEP' must also be defined.
 
-`SOFTWARE_SINGLE_STEP(SIGNAL, INSERT_BREAPOINTS_P)'
+`SOFTWARE_SINGLE_STEP(SIGNAL, INSERT_BREAKPOINTS_P)'
      A function that inserts or removes (depending on
-     INSERT_BREAPOINTS_P) breakpoints at each possible destinations of
+     INSERT_BREAKPOINTS_P) breakpoints at each possible destinations of
      the next instruction. See `sparc-tdep.c' and `rs6000-tdep.c' for
      examples.
 
@@ -3420,25 +3422,17 @@ machine.
           stab, and guess the starting and ending addresses of the
           compilation unit from them.
 
-`PC_LOAD_SEGMENT'
-     If defined, print information about the load segment for the
-     program counter.  (Defined only for the RS/6000.)
-
-`PC_REGNUM'
-     If the program counter is kept in a register, then define this
-     macro to be the number (greater than or equal to zero) of that
+`int gdbarch_pc_regnum (GDBARCH)'
+     If the program counter is kept in a register, then let this
+     function return the number (greater than or equal to zero) of that
      register.
 
-     This should only need to be defined if `TARGET_READ_PC' and
-     `TARGET_WRITE_PC' are not defined.
+     This should only need to be defined if `gdbarch_read_pc' and
+     `gdbarch_write_pc' are not defined.
 
-`PARM_BOUNDARY'
-     If non-zero, round arguments to a boundary of this many bits before
-     pushing them on the stack.
-
-`stabs_argument_has_addr (GDBARCH, TYPE)'
-     Define this to return nonzero if a function argument of type TYPE
-     is passed by reference instead of value.
+`int gdbarch_stabs_argument_has_addr (GDBARCH, TYPE)'
+     Define this function to return nonzero if a function argument of
+     type TYPE is passed by reference instead of value.
 
      This method replaces `DEPRECATED_REG_STRUCT_HAS_ADDR' (*note
      DEPRECATED_REG_STRUCT_HAS_ADDR::).
@@ -3446,22 +3440,16 @@ machine.
 `PROCESS_LINENUMBER_HOOK'
      A hook defined for XCOFF reading.
 
-`PROLOGUE_FIRSTLINE_OVERLAP'
-     (Only used in unsupported Convex configuration.)
+`gdbarch_ps_regnum (GDBARCH'
+     If defined, this function returns the number of the processor
+     status register.  (This definition is only used in generic code
+     when parsing "$ps".)
 
-`PS_REGNUM'
-     If defined, this is the number of the processor status register.
-     (This definition is only used in generic code when parsing "$ps".)
-
-`DEPRECATED_POP_FRAME'
-     If defined, used by `frame_pop' to remove a stack frame.  This
-     method has been superseeded by generic code.
-
-`push_dummy_call (GDBARCH, FUNCTION, REGCACHE, PC_ADDR, NARGS, ARGS, SP, STRUCT_RETURN, STRUCT_ADDR)'
+`CORE_ADDR gdbarch_push_dummy_call (GDBARCH, FUNCTION, REGCACHE, BP_ADDR, NARGS, ARGS, SP, STRUCT_RETURN, STRUCT_ADDR)'
      Define this to push the dummy frame's call to the inferior
      function onto the stack.  In addition to pushing NARGS, the code
-     should push STRUCT_ADDR (when STRUCT_RETURN), and the return
-     address (BP_ADDR).
+     should push STRUCT_ADDR (when STRUCT_RETURN is non-zero), and the
+     return address (BP_ADDR).
 
      FUNCTION is a pointer to a `struct value'; on architectures that
      use function descriptors, this contains the function descriptor
@@ -3471,7 +3459,7 @@ machine.
 
      This method replaces `DEPRECATED_PUSH_ARGUMENTS'.
 
-`CORE_ADDR push_dummy_code (GDBARCH, SP, FUNADDR, USING_GCC, ARGS, NARGS, VALUE_TYPE, REAL_PC, BP_ADDR)'
+`CORE_ADDR gdbarch_push_dummy_code (GDBARCH, SP, FUNADDR, USING_GCC, ARGS, NARGS, VALUE_TYPE, REAL_PC, BP_ADDR, REGCACHE)'
      Given a stack based call dummy, push the instruction sequence
      (including space for a breakpoint) to which the called function
      should return.
@@ -3484,30 +3472,30 @@ machine.
      (*note frame_align::) breakpoint, BP_ADDR is set to the address
      reserved for that breakpoint, and REAL_PC set to FUNADDR.
 
-     This method replaces `CALL_DUMMY_LOCATION',
+     This method replaces `gdbarch_call_dummy_location (GDBARCH)' and
      `DEPRECATED_REGISTER_SIZE'.
 
-`REGISTER_NAME(I)'
-     Return the name of register I as a string.  May return `NULL' or
-     `NUL' to indicate that register I is not valid.
+`const char *gdbarch_register_name (GDBARCH, REGNR)'
+     Return the name of register REGNR as a string.  May return `NULL'
+     to indicate that REGNR is not a valid register.
 
 `DEPRECATED_REG_STRUCT_HAS_ADDR (GCC_P, TYPE)'
      Define this to return 1 if the given type will be passed by
      pointer rather than directly.
 
-     This method has been replaced by `stabs_argument_has_addr' (*note
-     stabs_argument_has_addr::).
+     This method has been replaced by `gdbarch_stabs_argument_has_addr'
+     (*note gdbarch_stabs_argument_has_addr::).
 
 `SAVE_DUMMY_FRAME_TOS (SP)'
      Used in `call_function_by_hand' to notify the target dependent
-     code of the top-of-stack value that will be passed to the the
-     inferior code.  This is the value of the `SP' after both the dummy
-     frame and space for parameters/results have been allocated on the
-     stack.  *Note unwind_dummy_id::.
+     code of the top-of-stack value that will be passed to the inferior
+     code.  This is the value of the `SP' after both the dummy frame
+     and space for parameters/results have been allocated on the stack.
+     *Note gdbarch_unwind_dummy_id::.
 
-`SDB_REG_TO_REGNUM'
-     Define this to convert sdb register numbers into GDB regnums.  If
-     not defined, no conversion will be done.
+`int gdbarch_sdb_reg_to_regnum (GDBARCH, SDB_REGNR)'
+     Use this function to convert sdb register SDB_REGNR into GDB
+     regnum.  If not defined, no conversion will be done.
 
 `enum return_value_convention gdbarch_return_value (struct gdbarch *GDBARCH, struct type *VALTYPE, struct regcache *REGCACHE, void *READBUF, const void *WRITEBUF)'
      Given a function with a return-value of type RETTYPE, return which
@@ -3541,63 +3529,46 @@ machine.
      such a parameter should not be added.  If an architecture that
      requires per-compiler or per-function information be identified,
      then the replacement of RETTYPE with `struct value' FUNCTION
-     should be persued._
+     should be pursued._
 
      _Maintainer note: The REGCACHE parameter limits this methods to
      the inner most frame.  While replacing REGCACHE with a `struct
      frame_info' FRAME parameter would remove that limitation there has
      yet to be a demonstrated need for such a change._
 
-`SKIP_PERMANENT_BREAKPOINT'
+`void gdbarch_skip_permanent_breakpoint (GDBARCH, REGCACHE)'
      Advance the inferior's PC past a permanent breakpoint.  GDB
      normally steps over a breakpoint by removing it, stepping one
      instruction, and re-inserting the breakpoint.  However, permanent
      breakpoints are hardwired into the inferior, and can't be removed,
      so this strategy doesn't work.  Calling
-     `SKIP_PERMANENT_BREAKPOINT' adjusts the processor's state so that
-     execution will resume just after the breakpoint.  This macro does
-     the right thing even when the breakpoint is in the delay slot of a
-     branch or jump.
+     `gdbarch_skip_permanent_breakpoint' adjusts the processor's state
+     so that execution will resume just after the breakpoint.  This
+     function does the right thing even when the breakpoint is in the
+     delay slot of a branch or jump.
 
-`SKIP_PROLOGUE (PC)'
-     A C expression that returns the address of the "real" code beyond
-     the function entry prologue found at PC.
+`CORE_ADDR gdbarch_skip_prologue (GDBARCH, IP)'
+     A function that returns the address of the "real" code beyond the
+     function entry prologue found at IP.
 
-`SKIP_TRAMPOLINE_CODE (PC)'
+`CORE_ADDR gdbarch_skip_trampoline_code (GDBARCH, FRAME, PC)'
      If the target machine has trampoline code that sits between
-     callers and the functions being called, then define this macro to
-     return a new PC that is at the start of the real function.
+     callers and the functions being called, then define this function
+     to return a new PC that is at the start of the real function.
 
-`SP_REGNUM'
-     If the stack-pointer is kept in a register, then define this macro
-     to be the number (greater than or equal to zero) of that register,
-     or -1 if there is no such register.
+`int gdbarch_sp_regnum (GDBARCH)'
+     If the stack-pointer is kept in a register, then use this function
+     to return the number (greater than or equal to zero) of that
+     register, or -1 if there is no such register.
 
-`STAB_REG_TO_REGNUM'
-     Define this to convert stab register numbers (as gotten from `r'
-     declarations) into GDB regnums.  If not defined, no conversion
-     will be done.
+`int gdbarch_stab_reg_to_regnum (GDBARCH, STAB_REGNR)'
+     Use this function to convert stab register STAB_REGNR into GDB
+     regnum.  If not defined, no conversion will be done.
 
-`DEPRECATED_STACK_ALIGN (ADDR)'
-     Define this to increase ADDR so that it meets the alignment
-     requirements for the processor's stack.
-
-     Unlike *Note frame_align::, this function always adjusts ADDR
-     upwards.
-
-     By default, no stack alignment is performed.
-
-`STEP_SKIPS_DELAY (ADDR)'
-     Define this to return true if the address is of an instruction
-     with a delay slot.  If a breakpoint has been placed in the
-     instruction's delay slot, GDB will single-step over that
-     instruction before resuming normally.  Currently only defined for
-     the Mips.
-
-`STORE_RETURN_VALUE (TYPE, REGCACHE, VALBUF)'
-     A C expression that writes the function return value, found in
-     VALBUF, into the REGCACHE.  TYPE is the type of the value that is
-     to be returned.
+`void gdbarch_store_return_value (GDBARCH, TYPE, REGCACHE, VALBUF)'
+     A function that writes the function return value, found in VALBUF,
+     into the REGCACHE.  TYPE is the type of the value that is to be
+     returned.
 
      This method has been deprecated in favour of `gdbarch_return_value'
      (*note gdbarch_return_value::).
@@ -3609,7 +3580,7 @@ machine.
 `TARGET_CHAR_BIT'
      Number of bits in a char; defaults to 8.
 
-`TARGET_CHAR_SIGNED'
+`int gdbarch_char_signed (GDBARCH)'
      Non-zero if `char' is normally signed on this architecture; zero if
      it should be unsigned.
 
@@ -3619,63 +3590,52 @@ machine.
      Most compilers treat `char' as signed, but `char' is unsigned on
      the IBM S/390, RS6000, and PowerPC targets.
 
-`TARGET_COMPLEX_BIT'
-     Number of bits in a complex number; defaults to `2 *
-     TARGET_FLOAT_BIT'.
+`int gdbarch_double_bit (GDBARCH)'
+     Number of bits in a double float; defaults to
+     `8 * TARGET_CHAR_BIT'.
 
-     At present this macro is not used.
-
-`TARGET_DOUBLE_BIT'
-     Number of bits in a double float; defaults to `8 *
-     TARGET_CHAR_BIT'.
-
-`TARGET_DOUBLE_COMPLEX_BIT'
-     Number of bits in a double complex; defaults to `2 *
-     TARGET_DOUBLE_BIT'.
-
-     At present this macro is not used.
-
-`TARGET_FLOAT_BIT'
+`int gdbarch_float_bit (GDBARCH)'
      Number of bits in a float; defaults to `4 * TARGET_CHAR_BIT'.
 
-`TARGET_INT_BIT'
+`int gdbarch_int_bit (GDBARCH)'
      Number of bits in an integer; defaults to `4 * TARGET_CHAR_BIT'.
 
-`TARGET_LONG_BIT'
-     Number of bits in a long integer; defaults to `4 *
-     TARGET_CHAR_BIT'.
+`int gdbarch_long_bit (GDBARCH)'
+     Number of bits in a long integer; defaults to
+     `4 * TARGET_CHAR_BIT'.
 
-`TARGET_LONG_DOUBLE_BIT'
-     Number of bits in a long double float; defaults to `2 *
-     TARGET_DOUBLE_BIT'.
+`int gdbarch_long_double_bit (GDBARCH)'
+     Number of bits in a long double float; defaults to
+     `2 * gdbarch_double_bit (GDBARCH)'.
 
-`TARGET_LONG_LONG_BIT'
-     Number of bits in a long long integer; defaults to `2 *
-     TARGET_LONG_BIT'.
+`int gdbarch_long_long_bit (GDBARCH)'
+     Number of bits in a long long integer; defaults to
+     `2 * gdbarch_long_bit (GDBARCH)'.
 
-`TARGET_PTR_BIT'
-     Number of bits in a pointer; defaults to `TARGET_INT_BIT'.
+`int gdbarch_ptr_bit (GDBARCH)'
+     Number of bits in a pointer; defaults to
+     `gdbarch_int_bit (GDBARCH)'.
 
-`TARGET_SHORT_BIT'
-     Number of bits in a short integer; defaults to `2 *
-     TARGET_CHAR_BIT'.
+`int gdbarch_short_bit (GDBARCH)'
+     Number of bits in a short integer; defaults to
+     `2 * TARGET_CHAR_BIT'.
 
-`TARGET_READ_PC'
-`TARGET_WRITE_PC (VAL, PID)'
+`CORE_ADDR gdbarch_read_pc (GDBARCH, REGCACHE)'
+`gdbarch_write_pc (GDBARCH, REGCACHE, VAL)'
 `TARGET_READ_SP'
 `TARGET_READ_FP'
-     These change the behavior of `read_pc', `write_pc', and `read_sp'.
-     For most targets, these may be left undefined.  GDB will call the
-     read and write register functions with the relevant `_REGNUM'
-     argument.
+     These change the behavior of `gdbarch_read_pc',
+     `gdbarch_write_pc', and `read_sp'.  For most targets, these may be
+     left undefined.  GDB will call the read and write register
+     functions with the relevant `_REGNUM' argument.
 
-     These macros are useful when a target keeps one of these registers
-     in a hard to get at place; for example, part in a segment register
-     and part in an ordinary register.
+     These macros and functions are useful when a target keeps one of
+     these registers in a hard to get at place; for example, part in a
+     segment register and part in an ordinary register.
 
-     *Note unwind_sp::, which replaces `TARGET_READ_SP'.
+     *Note gdbarch_unwind_sp::, which replaces `TARGET_READ_SP'.
 
-`TARGET_VIRTUAL_FRAME_POINTER(PC, REGP, OFFSETP)'
+`void gdbarch_virtual_frame_pointer (GDBARCH, PC, FRAME_REGNUM, FRAME_OFFSET)'
      Returns a `(register, offset)' pair representing the virtual frame
      pointer in use at the code address PC.  If virtual frame pointers
      are not used, a default definition simply returns
@@ -3686,9 +3646,9 @@ machine.
      watchpoints.  *Note watchpoints: Algorithms, for more details and
      other related macros.
 
-`TARGET_PRINT_INSN (ADDR, INFO)'
+`int gdbarch_print_insn (GDBARCH, VMA, INFO)'
      This is the function used by GDB to print an assembly instruction.
-     It prints the instruction at address ADDR in debugged memory and
+     It prints the instruction at address VMA in debugged memory and
      returns the length of the instruction, in bytes.  If a target
      doesn't define its own printing routine, it defaults to an
      accessor function for the global pointer
@@ -3698,7 +3658,7 @@ machine.
      `include/dis-asm.h' used to pass information to the instruction
      decoding routine.
 
-`struct frame_id unwind_dummy_id (struct frame_info *FRAME)'
+`frame_id gdbarch_unwind_dummy_id (GDBARCH, FRAME)'
      Given FRAME return a `struct frame_id' that uniquely identifies an
      inferior function call's dummy frame.  The value returned must
      match the dummy frame stack value previously saved using
@@ -3715,10 +3675,10 @@ machine.
      This method has been deprecated in favour of `gdbarch_return_value'
      (*note gdbarch_return_value::).
 
-`VALUE_TO_REGISTER(TYPE, REGNUM, FROM, TO)'
-     Convert a value of type TYPE into the raw contents of register
-     REGNUM's.  *Note Using Different Register and Memory Data
-     Representations: Target Architecture Definition.
+`void gdbarch_value_to_register (GDBARCH, FRAME, TYPE, BUF)'
+     Convert a value of type TYPE into the raw contents of a register.
+     *Note Using Different Register and Memory Data Representations:
+     Target Architecture Definition.
 
 `VARIABLES_INSIDE_BLOCK (DESC, GCC_P)'
      For dbx-style debugging information, if the compiler puts variable
@@ -3728,8 +3688,6 @@ machine.
      either the `GCC_COMPILED_SYMBOL' or the `GCC2_COMPILED_SYMBOL'.
      By default, this is 0.
 
-`OS9K_VARIABLES_INSIDE_BLOCK (DESC, GCC_P)'
-     Similarly, for OS/9000.  Defaults to 1.
 
    Motorola M68K target conditionals.
 
@@ -3740,11 +3698,14 @@ machine.
 `REMOTE_BPT_VECTOR'
      Defaults to `1'.
 
-`NAME_OF_MALLOC'
+`const char *gdbarch_name_of_malloc (GDBARCH)'
      A string containing the name of the function to call in order to
      allocate some memory in the inferior. The default value is
      "malloc".
 
+
+
+File: gdbint.info,  Node: Adding a New Target,  Prev: Target Conditionals,  Up: Target Architecture Definition
 
 9.12 Adding a New Target
 ========================
@@ -3798,158 +3759,127 @@ facilities that are unusual (extra symbol table info; the breakpoint
 instruction needed; etc.).  Then write a `ARCH/tm-OS.h' that just
 `#include's `tm-ARCH.h' and `config/tm-OS.h'.
 
-9.13 Converting an existing Target Architecture to Multi-arch
-=============================================================
+
+File: gdbint.info,  Node: Target Descriptions,  Next: Target Vector Definition,  Prev: Target Architecture Definition,  Up: Top
 
-This section describes the current accepted best practice for converting
-an existing target architecture to the multi-arch framework.
+10 Target Descriptions
+**********************
 
-   The process consists of generating, testing, posting and committing a
-sequence of patches.  Each patch must contain a single change, for
-instance:
+The target architecture definition (*note Target Architecture
+Definition::) contains GDB's hard-coded knowledge about an
+architecture.  For some platforms, it is handy to have more flexible
+knowledge about a specific instance of the architecture--for instance,
+a processor or development board.  "Target descriptions" provide a
+mechanism for the user to tell GDB more about what their target
+supports, or for the target to tell GDB directly.
 
-   * Directly convert a group of functions into macros (the conversion
-     does not change the behavior of any of the functions).
+   For details on writing, automatically supplying, and manually
+selecting target descriptions, see *Note Target Descriptions:
+(gdb)Target Descriptions.  This section will cover some related topics
+about the GDB internals.
 
-   * Replace a non-multi-arch with a multi-arch mechanism (e.g.,
-     `FRAME_INFO').
+* Menu:
 
-   * Enable multi-arch level one.
-
-   * Delete one or more files.
-
-
-There isn't a size limit on a patch, however, a developer is strongly
-encouraged to keep the patch size down.
-
-   Since each patch is well defined, and since each change has been
-tested and shows no regressions, the patches are considered _fairly_
-obvious.  Such patches, when submitted by developers listed in the
-`MAINTAINERS' file, do not need approval.  Occasional steps in the
-process may be more complicated and less clear.  The developer is
-expected to use their judgment and is encouraged to seek advice as
-needed.
-
-9.13.1 Preparation
-------------------
-
-The first step is to establish control.  Build (with `-Werror' enabled)
-and test the target so that there is a baseline against which the
-debugger can be compared.
-
-   At no stage can the test results regress or GDB stop compiling with
-`-Werror'.
-
-9.13.2 Add the multi-arch initialization code
----------------------------------------------
-
-The objective of this step is to establish the basic multi-arch
-framework.  It involves
-
-   * The addition of a `ARCH_gdbarch_init' function(2) that creates the
-     architecture:
-          static struct gdbarch *
-          d10v_gdbarch_init (info, arches)
-               struct gdbarch_info info;
-               struct gdbarch_list *arches;
-          {
-            struct gdbarch *gdbarch;
-            /* there is only one d10v architecture */
-            if (arches != NULL)
-              return arches->gdbarch;
-            gdbarch = gdbarch_alloc (&info, NULL);
-            return gdbarch;
-          }
-     __
-
-   * A per-architecture dump function to print any architecture specific
-     information:
-          static void
-          mips_dump_tdep (struct gdbarch *current_gdbarch,
-                          struct ui_file *file)
-          {
-             ... code to print architecture specific info ...
-          }
-
-   * A change to `_initialize_ARCH_tdep' to register this new
-     architecture:
-          void
-          _initialize_mips_tdep (void)
-          {
-            gdbarch_register (bfd_arch_mips, mips_gdbarch_init,
-                              mips_dump_tdep);
-
-   * Add the macro `GDB_MULTI_ARCH', defined as 0 (zero), to the file
-     `config/ARCH/tm-ARCH.h'.
-
-
-9.13.3 Update multi-arch incompatible mechanisms
-------------------------------------------------
-
-Some mechanisms do not work with multi-arch.  They include:
-
-`FRAME_FIND_SAVED_REGS'
-     Replaced with `DEPRECATED_FRAME_INIT_SAVED_REGS'
-
-At this stage you could also consider converting the macros into
-functions.
-
-9.13.4 Prepare for multi-arch level to one
-------------------------------------------
-
-Temporally set `GDB_MULTI_ARCH' to `GDB_MULTI_ARCH_PARTIAL' and then
-build and start GDB (the change should not be committed).  GDB may not
-build, and once built, it may die with an internal error listing the
-architecture methods that must be provided.
-
-   Fix any build problems (patch(es)).
-
-   Convert all the architecture methods listed, which are only macros,
-into functions (patch(es)).
-
-   Update `ARCH_gdbarch_init' to set all the missing architecture
-methods and wrap the corresponding macros in `#if !GDB_MULTI_ARCH'
-(patch(es)).
-
-9.13.5 Set multi-arch level one
--------------------------------
-
-Change the value of `GDB_MULTI_ARCH' to GDB_MULTI_ARCH_PARTIAL (a
-single patch).
-
-   Any problems with throwing "the switch" should have been fixed
-already.
-
-9.13.6 Convert remaining macros
--------------------------------
-
-Suggest converting macros into functions (and setting the corresponding
-architecture method) in small batches.
-
-9.13.7 Set multi-arch level to two
-----------------------------------
-
-This should go smoothly.
-
-9.13.8 Delete the TM file
--------------------------
-
-The `tm-ARCH.h' can be deleted.  `ARCH.mt' and `configure.in' updated.
-
-   ---------- Footnotes ----------
-
-   (1) Some D10V instructions are actually pairs of 16-bit
-sub-instructions.  However, since you can't jump into the middle of
-such a pair, code addresses can only refer to full 32 bit instructions,
-which is what matters in this explanation.
-
-   (2) The above is from the original example and uses K&R C.  GDB has
-since converted to ISO C but lets ignore that.
+* Target Descriptions Implementation::
+* Adding Target Described Register Support::
 
 
-File: gdbint.info,  Node: Target Vector Definition,  Next: Native Debugging,  Prev: Target Architecture Definition,  Up: Top
+File: gdbint.info,  Node: Target Descriptions Implementation,  Next: Adding Target Described Register Support,  Up: Target Descriptions
 
-10 Target Vector Definition
+10.1 Target Descriptions Implementation
+=======================================
+
+Before GDB connects to a new target, or runs a new program on an
+existing target, it discards any existing target description and
+reverts to a default gdbarch.  Then, after connecting, it looks for a
+new target description by calling `target_find_description'.
+
+   A description may come from a user specified file (XML), the remote
+`qXfer:features:read' packet (also XML), or from any custom
+`to_read_description' routine in the target vector.  For instance, the
+remote target supports guessing whether a MIPS target is 32-bit or
+64-bit based on the size of the `g' packet.
+
+   If any target description is found, GDB creates a new gdbarch
+incorporating the description by calling `gdbarch_update_p'.  Any
+`<architecture>' element is handled first, to determine which
+architecture's gdbarch initialization routine is called to create the
+new architecture.  Then the initialization routine is called, and has a
+chance to adjust the constructed architecture based on the contents of
+the target description.  For instance, it can recognize any properties
+set by a `to_read_description' routine.  Also see *Note Adding Target
+Described Register Support::.
+
+
+File: gdbint.info,  Node: Adding Target Described Register Support,  Prev: Target Descriptions Implementation,  Up: Target Descriptions
+
+10.2 Adding Target Described Register Support
+=============================================
+
+Target descriptions can report additional registers specific to an
+instance of the target.  But it takes a little work in the architecture
+specific routines to support this.
+
+   A target description must either have no registers or a complete
+set--this avoids complexity in trying to merge standard registers with
+the target defined registers.  It is the architecture's responsibility
+to validate that a description with registers has everything it needs.
+To keep architecture code simple, the same mechanism is used to assign
+fixed internal register numbers to standard registers.
+
+   If `tdesc_has_registers' returns 1, the description contains
+registers.  The architecture's `gdbarch_init' routine should:
+
+   * Call `tdesc_data_alloc' to allocate storage, early, before
+     searching for a matching gdbarch or allocating a new one.
+
+   * Use `tdesc_find_feature' to locate standard features by name.
+
+   * Use `tdesc_numbered_register' and `tdesc_numbered_register_choices'
+     to locate the expected registers in the standard features.
+
+   * Return `NULL' if a required feature is missing, or if any standard
+     feature is missing expected registers.  This will produce a
+     warning that the description was incomplete.
+
+   * Free the allocated data before returning, unless
+     `tdesc_use_registers' is called.
+
+   * Call `set_gdbarch_num_regs' as usual, with a number higher than any
+     fixed number passed to `tdesc_numbered_register'.
+
+   * Call `tdesc_use_registers' after creating a new gdbarch, before
+     returning it.
+
+
+   After `tdesc_use_registers' has been called, the architecture's
+`register_name', `register_type', and `register_reggroup_p' routines
+will not be called; that information will be taken from the target
+description.  `num_regs' may be increased to account for any additional
+registers in the description.
+
+   Pseudo-registers require some extra care:
+
+   * Using `tdesc_numbered_register' allows the architecture to give
+     constant register numbers to standard architectural registers, e.g.
+     as an `enum' in `ARCH-tdep.h'.  But because pseudo-registers are
+     always numbered above `num_regs', which may be increased by the
+     description, constant numbers can not be used for pseudos.  They
+     must be numbered relative to `num_regs' instead.
+
+   * The description will not describe pseudo-registers, so the
+     architecture must call `set_tdesc_pseudo_register_name',
+     `set_tdesc_pseudo_register_type', and
+     `set_tdesc_pseudo_register_reggroup_p' to supply routines
+     describing pseudo registers.  These routines will be passed
+     internal register numbers, so the same routines used for the
+     gdbarch equivalents are usually suitable.
+
+
+
+File: gdbint.info,  Node: Target Vector Definition,  Next: Native Debugging,  Prev: Target Descriptions,  Up: Top
+
+11 Target Vector Definition
 ***************************
 
 The target vector defines the interface between GDB's abstract handling
@@ -3966,14 +3896,14 @@ only a few of them.
 
 File: gdbint.info,  Node: Managing Execution State,  Next: Existing Targets,  Up: Target Vector Definition
 
-10.1 Managing Execution State
+11.1 Managing Execution State
 =============================
 
 A target vector can be completely inactive (not pushed on the target
 stack), active but not running (pushed, but not connected to a fully
 manifested inferior), or completely active (pushed, with an accessible
 inferior).  Most targets are only completely inactive or completely
-active, but some support persistant connections to a target even when
+active, but some support persistent connections to a target even when
 the target has exited or not yet started.
 
    For example, connecting to the simulator using `target sim' does not
@@ -4002,15 +3932,15 @@ inactive state.
 
 File: gdbint.info,  Node: Existing Targets,  Prev: Managing Execution State,  Up: Target Vector Definition
 
-10.2 Existing Targets
+11.2 Existing Targets
 =====================
 
-10.2.1 File Targets
+11.2.1 File Targets
 -------------------
 
 Both executables and core files have target vectors.
 
-10.2.2 Standard Protocol and Remote Stubs
+11.2.2 Standard Protocol and Remote Stubs
 -----------------------------------------
 
 GDB's file `remote.c' talks a serial protocol to code that runs in the
@@ -4052,22 +3982,22 @@ of the debugger/stub.
    From reading the stub, it's probably not obvious how breakpoints
 work.  They are simply done by deposit/examine operations from GDB.
 
-10.2.3 ROM Monitor Interface
+11.2.3 ROM Monitor Interface
 ----------------------------
 
-10.2.4 Custom Protocols
+11.2.4 Custom Protocols
 -----------------------
 
-10.2.5 Transport Layer
+11.2.5 Transport Layer
 ----------------------
 
-10.2.6 Builtin Simulator
+11.2.6 Builtin Simulator
 ------------------------
 
 
 File: gdbint.info,  Node: Native Debugging,  Next: Support Libraries,  Prev: Target Vector Definition,  Up: Top
 
-11 Native Debugging
+12 Native Debugging
 *******************
 
 Several files control GDB's configuration for native support:
@@ -4124,7 +4054,7 @@ file.  Put them into `XYZ-nat.c', and put `XYZ-nat.o' into
      This is the low level interface to inferior processes for systems
      using the Unix `ptrace' call in a vanilla way.
 
-11.1 Native core file Support
+12.1 Native core file Support
 =============================
 
 `core-aout.c::fetch_core_registers()'
@@ -4177,19 +4107,19 @@ values and install them into GDB's "registers" array.
 format core files, then you may be able to use the same routines for
 reading the registers out of processes and out of core files.
 
-11.2 ptrace
+12.2 ptrace
 ===========
 
-11.3 /proc
+12.3 /proc
 ==========
 
-11.4 win32
+12.4 win32
 ==========
 
-11.5 shared libraries
+12.5 shared libraries
 =====================
 
-11.6 Native Conditionals
+12.6 Native Conditionals
 ========================
 
 When GDB is configured and compiled, various macros are defined or left
@@ -4212,19 +4142,19 @@ the same.  These macros should be defined (or left undefined) in
      `infptrace.c' is included in this configuration, the default
      routines in `infptrace.c' are used for these functions.
 
-`FP0_REGNUM'
-     This macro is normally defined to be the number of the first
-     floating point register, if the machine has such registers.  As
-     such, it would appear only in target-specific code.  However,
-     `/proc' support uses this to decide whether floats are in use on
-     this target.
+`int gdbarch_fp0_regnum (GDBARCH)'
+     This functions normally returns the number of the first floating
+     point register, if the machine has such registers.  As such, it
+     would appear only in target-specific code.  However, `/proc'
+     support uses this to decide whether floats are in use on this
+     target.
 
-`GET_LONGJMP_TARGET'
+`int gdbarch_get_longjmp_target (GDBARCH)'
      For most machines, this is a target-dependent parameter.  On the
      DECstation and the Iris, this is a native-dependent parameter,
      since `setjmp.h' is needed to define it.
 
-     This macro determines the target PC address that `longjmp' will
+     This function determines the target PC address that `longjmp' will
      jump to, assuming that we have just stopped at a longjmp
      breakpoint.  It takes a `CORE_ADDR *' as argument, and stores the
      target PC value through this pointer.  It examines the current
@@ -4235,19 +4165,6 @@ the same.  These macros should be defined (or left undefined) in
      watchpoint support; see *Note I386_USE_GENERIC_WATCHPOINTS:
      Algorithms.
 
-`KERNEL_U_ADDR'
-     Define this to the address of the `u' structure (the "user
-     struct", also known as the "u-page") in kernel virtual memory.
-     GDB needs to know this so that it can subtract this address from
-     absolute addresses in the upage, that are obtained via ptrace or
-     from core files.  On systems that don't need this value, set it to
-     zero.
-
-`KERNEL_U_ADDR_HPUX'
-     Define this to cause GDB to determine the address of `u' at
-     runtime, by using HP-style `nlist' on the kernel's image in the
-     root directory.
-
 `ONE_PROCESS_WRITETEXT'
      Define this to be able to, when a breakpoint insertion fails, warn
      the user that another process may be running with the same
@@ -4257,13 +4174,6 @@ the same.  These macros should be defined (or left undefined) in
      Defines the format for the name of a `/proc' device.  Should be
      defined in `nm.h' _only_ in order to override the default
      definition in `procfs.c'.
-
-`PTRACE_ARG3_TYPE'
-     The type of the third argument to the `ptrace' system call, if it
-     exists and is different from `int'.
-
-`REGISTER_U_ADDR'
-     Defines the offset of the registers in the "u area".
 
 `SHELL_COMMAND_CONCAT'
      If defined, is a string to prefix on the shell command used to
@@ -4289,36 +4199,17 @@ the same.  These macros should be defined (or left undefined) in
      If the actual number of traps is something other than 2, then
      define this macro to expand into the number expected.
 
-`USE_PROC_FS'
-     This determines whether small routines in `*-tdep.c', which
-     translate register values between GDB's internal representation
-     and the `/proc' representation, are compiled.
-
-`U_REGS_OFFSET'
-     This is the offset of the registers in the upage.  It need only be
-     defined if the generic ptrace register access routines in
-     `infptrace.c' are being used (that is, `infptrace.c' is configured
-     in, and `FETCH_INFERIOR_REGISTERS' is not defined).  If the
-     default value from `infptrace.c' is good enough, leave it
-     undefined.
-
-     The default value means that u.u_ar0 _points to_ the location of
-     the registers.  I'm guessing that `#define U_REGS_OFFSET 0' means
-     that `u.u_ar0' _is_ the location of the registers.
-
 `CLEAR_SOLIB'
      See `objfiles.c'.
 
-`DEBUG_PTRACE'
-     Define this to debug `ptrace' calls.
 
 
 File: gdbint.info,  Node: Support Libraries,  Next: Coding,  Prev: Native Debugging,  Up: Top
 
-12 Support Libraries
+13 Support Libraries
 ********************
 
-12.1 BFD
+13.1 BFD
 ========
 
 BFD provides support for GDB in several ways:
@@ -4348,19 +4239,20 @@ _locating the symbol information_
      "understand" debug symbols, but GDB uses BFD's cached information
      to find the symbols, string table, etc.
 
-12.2 opcodes
+13.2 opcodes
 ============
 
 The opcodes library provides GDB's disassembler.  (It's a separate
 library because it's also used in binutils, for `objdump').
 
-12.3 readline
+13.3 readline
 =============
 
-12.4 mmalloc
-============
+The `readline' library provides a set of functions for use by
+applications that allow users to edit command lines as they are typed
+in.
 
-12.5 libiberty
+13.4 libiberty
 ==============
 
 The `libiberty' library provides a set of functions and features that
@@ -4377,21 +4269,21 @@ instance the C++ demangler, the IEEE floating format support functions,
 the input options parser `getopt', the `obstack' extension, and other
 functions.
 
-12.5.1 `obstacks' in GDB
+13.4.1 `obstacks' in GDB
 ------------------------
 
 The obstack mechanism provides a convenient way to allocate and free
 chunks of memory.  Each obstack is a pool of memory that is managed
 like a stack.  Objects (of any nature, size and alignment) are
 allocated and freed in a LIFO fashion on an obstack (see `libiberty''s
-documenatation for a more detailed explanation of `obstacks').
+documentation for a more detailed explanation of `obstacks').
 
    The most noticeable use of the `obstacks' in GDB is in object files.
 There is an obstack associated with each internal representation of an
 object file.  Lots of things get allocated on these `obstacks':
 dictionary entries, blocks, blockvectors, symbols, minimal symbols,
 types, vectors of fundamental types, class fields of types, object
-files section lists, object files section offets lists, line tables,
+files section lists, object files section offset lists, line tables,
 symbol tables, partial symbol tables, string tables, symbol table
 private data, macros tables, debug information sections and entries,
 import and export lists (som), unwind information (hppa), dwarf2
@@ -4400,7 +4292,7 @@ names strings, debug format strings, names of types.
 
    An essential and convenient property of all data on `obstacks' is
 that memory for it gets allocated (with `obstack_alloc') at various
-times during a debugging sesssion, but it is released all at once using
+times during a debugging session, but it is released all at once using
 the `obstack_free' function.  The `obstack_free' function takes a
 pointer to where in the stack it must start the deletion from (much
 like the cleanup chains have a pointer to where to start the cleanups).
@@ -4418,7 +4310,7 @@ under the condition that we know the `obstacks' memory is no longer
 needed.  In GDB we get rid of the `obstacks' only when we get rid of
 the whole objfile(s), for instance upon reading a new symbol file.
 
-12.6 gnu-regex
+13.5 gnu-regex
 ==============
 
 Regex conditionals.
@@ -4439,12 +4331,12 @@ Regex conditionals.
 
 `sparc'
 
-12.7 Array Containers
+13.6 Array Containers
 =====================
 
 Often it is necessary to manipulate a dynamic array of a set of
 objects.  C forces some bookkeeping on this, which can get cumbersome
-and repetative.  The `vec.h' file contains macros for defining and
+and repetitive.  The `vec.h' file contains macros for defining and
 using a typesafe vector type.  The functions defined will be inlined
 when compiling, and so the abstraction cost should be zero.  Domain
 checks are added to detect programming errors.
@@ -4607,19 +4499,19 @@ accessors provided.  They are enumerated here:
      Binary search the array.
 
 
-12.8 include
+13.7 include
 ============
 
 
 File: gdbint.info,  Node: Coding,  Next: Porting GDB,  Prev: Support Libraries,  Up: Top
 
-13 Coding
+14 Coding
 *********
 
 This chapter covers topics that are lower-level than the major
 algorithms of GDB.
 
-13.1 Cleanups
+14.1 Cleanups
 =============
 
 Cleanups are a structured way to deal with things that need to be done
@@ -4707,7 +4599,7 @@ interruption must be on the cleanup chain before you call these
 functions, since they might never return to your code (they `longjmp'
 instead).
 
-13.2 Per-architecture module data
+14.2 Per-architecture module data
 =================================
 
 The multi-arch framework includes a mechanism for adding module
@@ -4797,7 +4689,7 @@ using `post_init'.
        return data->total;
      }
 
-13.3 Wrapping Output Lines
+14.3 Wrapping Output Lines
 ==========================
 
 Output that goes through `printf_filtered' or `fputs_filtered' or
@@ -4821,7 +4713,7 @@ finish by printing a newline, to flush the wrap buffer, before switching
 to unfiltered (`printf') output.  Symbol reading routines that print
 warnings are a good example.
 
-13.4 GDB Coding Standards
+14.4 GDB Coding Standards
 =========================
 
 GDB follows the GNU coding standards, as described in
@@ -4833,14 +4725,14 @@ does not require it, GDB requires it.
    GDB follows an additional set of coding standards specific to GDB,
 as described in the following sections.
 
-13.4.1 ISO C
+14.4.1 ISO C
 ------------
 
 GDB assumes an ISO/IEC 9899:1990 (a.k.a. ISO C90) compliant compiler.
 
    GDB does not assume an ISO C or POSIX compliant C library.
 
-13.4.2 Memory Management
+14.4.2 Memory Management
 ------------------------
 
 GDB does not use the functions `malloc', `realloc', `calloc', `free'
@@ -4877,63 +4769,35 @@ restrict the memory being allocated to no more than a few kilobytes._
    _Pragmatics: `asprintf' and `strdup' can fail.  Print functions such
 as `sprintf' are very prone to buffer overflow errors._
 
-13.4.3 Compiler Warnings
+14.4.3 Compiler Warnings
 ------------------------
 
-With few exceptions, developers should include the configuration option
-`--enable-gdb-build-warnings=,-Werror' when building GDB.  The
-exceptions are listed in the file `gdb/MAINTAINERS'.
+With few exceptions, developers should avoid the configuration option
+`--disable-werror' when building GDB.  The exceptions are listed in the
+file `gdb/MAINTAINERS'.  The default, when building with GCC, is
+`--enable-werror'.
 
    This option causes GDB (when built using GCC) to be compiled with a
 carefully selected list of compiler warning flags.  Any warnings from
-those flags being treated as errors.
+those flags are treated as errors.
 
    The current list of warning flags includes:
 
-`-Wimplicit'
-     Since GDB coding standard requires all functions to be declared
-     using a prototype, the flag has the side effect of ensuring that
-     prototyped functions are always visible with out resorting to
-     `-Wstrict-prototypes'.
+`-Wall'
+     Recommended GCC warnings.
 
-`-Wreturn-type'
-     Such code often appears to work except on instruction set
-     architectures that use register windows.
-
-`-Wcomment'
-
-`-Wtrigraphs'
-
-`-Wformat'
-`-Wformat-nonliteral'
-     Since GDB uses the `format printf' attribute on all `printf' like
-     functions these check not just `printf' calls but also calls to
-     functions such as `fprintf_unfiltered'.
-
-`-Wparentheses'
-     This warning includes uses of the assignment operator within an
-     `if' statement.
+`-Wdeclaration-after-statement'
+     GCC 3.x (and later) and C99 allow declarations mixed with code,
+     but GCC 2.x and C89 do not.
 
 `-Wpointer-arith'
 
-`-Wuninitialized'
-
-`-Wunused-label'
-     This warning has the additional benefit of detecting the absence
-     of the `case' reserved word in a switch statement:
-          enum { FD_SCHEDULED, NOTHING_SCHEDULED } sched;
-          ...
-          switch (sched)
-            {
-            case FD_SCHEDULED:
-              ...;
-              break;
-            NOTHING_SCHEDULED:
-              ...;
-              break;
-            }
-
-`-Wunused-function'
+`-Wformat-nonliteral'
+     Non-literal format strings, with a few exceptions, are bugs - they
+     might contain unintended user-supplied format specifiers.  Since
+     GDB uses the `format printf' attribute on all `printf' like
+     functions this checks not just `printf' calls but also calls to
+     functions such as `fprintf_unfiltered'.
 
 `-Wno-pointer-sign'
      In version 4.0, GCC began warning about pointer argument passing or
@@ -4943,20 +4807,21 @@ those flags being treated as errors.
      developers decided correcting these warnings wasn't worth the time
      it would take.
 
+`-Wno-unused-parameter'
+     Due to the way that GDB is implemented many functions have unused
+     parameters.  Consequently this warning is avoided.  The macro
+     `ATTRIBUTE_UNUSED' is not used as it leads to false negatives --
+     it is not an error to have `ATTRIBUTE_UNUSED' on a parameter that
+     is being used.
 
-   _Pragmatics: Due to the way that GDB is implemented most functions
-have unused parameters.  Consequently the warning `-Wunused-parameter'
-is precluded from the list.  The macro `ATTRIBUTE_UNUSED' is not used
-as it leads to false negatives -- it is not an error to have
-`ATTRIBUTE_UNUSED' on a parameter that is being used.  The options
-`-Wall' and `-Wunused' are also precluded because they both include
-`-Wunused-parameter'._
+`-Wno-unused'
+`-Wno-switch'
+`-Wno-char-subscripts'
+     These are warnings which might be useful for GDB, but are
+     currently too noisy to enable with `-Werror'.
 
-   _Pragmatics: GDB has not simply accepted the warnings enabled by
-`-Wall -Werror -W...'.  Instead it is selecting warnings when and where
-their benefits can be demonstrated._
 
-13.4.4 Formatting
+14.4.4 Formatting
 -----------------
 
 The standard GNU recommendations for formatting must be followed
@@ -4996,7 +4861,7 @@ and not:
      void * foo;
      void* foo;
 
-13.4.5 Comments
+14.4.5 Comments
 ---------------
 
 The standard GNU requirements on comments must be followed strictly.
@@ -5022,7 +4887,7 @@ than trying to fit them into the 20 characters left at the end of a
 line, since either the comment or the code will inevitably get longer
 than will fit, and then somebody will have to move it anyhow.
 
-13.4.6 C Usage
+14.4.6 C Usage
 --------------
 
 Code must not depend on the sizes of C data types, the format of the
@@ -5044,7 +4909,7 @@ that the macro arguments are protected with parentheses.)
    Declarations like `struct foo *' should be used in preference to
 declarations like `typedef struct foo { ... } *foo_ptr'.
 
-13.4.7 Function Prototypes
+14.4.7 Function Prototypes
 --------------------------
 
 Prototypes must be used when both _declaring_ and _defining_ a
@@ -5060,7 +4925,7 @@ visible to random source files.
    Where a source file needs a forward declaration of a static function,
 that declaration must appear in a block near the top of the source file.
 
-13.4.8 Internal Error Recovery
+14.4.8 Internal Error Recovery
 ------------------------------
 
 During its execution, GDB can encounter two types of errors.  User
@@ -5080,7 +4945,7 @@ code detected a user error, recovered from it and issued a `warning' or
 the code failed to correctly recover from the user error and issued an
 `internal_error'._
 
-13.4.9 File Names
+14.4.9 File Names
 -----------------
 
 Any file used when building the core of GDB must be in lower case. Any
@@ -5109,7 +4974,7 @@ GDB and GDBSERVER.
 
    For other files `-' is used as the separator.
 
-13.4.10 Include Files
+14.4.10 Include Files
 ---------------------
 
 A `.c' file should include `defs.h' first.
@@ -5142,7 +5007,7 @@ instead of an include.
      header body
      #endif
 
-13.4.11 Clean Design and Portable Implementation
+14.4.11 Clean Design and Portable Implementation
 ------------------------------------------------
 
 In addition to getting the syntax right, there's the little question of
@@ -5261,7 +5126,7 @@ command.  Do not use `printf' to print trace messages.  Use
 
 File: gdbint.info,  Node: Porting GDB,  Next: Versions and Branches,  Prev: Coding,  Up: Top
 
-14 Porting GDB
+15 Porting GDB
 **************
 
 Most of the work in making GDB compile on a new machine is in
@@ -5308,10 +5173,10 @@ XYZ (e.g.,  `sun4'), and its full three-part configuration name is
 
 File: gdbint.info,  Node: Versions and Branches,  Next: Start of New Year Procedure,  Prev: Porting GDB,  Up: Top
 
-15 Versions and Branches
+16 Versions and Branches
 ************************
 
-15.1 Versions
+16.1 Versions
 =============
 
 GDB's version is determined by the file `gdb/version.in' and takes one
@@ -5395,7 +5260,7 @@ illustration of a typical sequence:
      6.3.50.20020312-cvs        6.2.90 (draft #1)
              |                          |
 
-15.2 Release Branches
+16.2 Release Branches
 =====================
 
 GDB draws a release series (6.2, 6.2.1, ...) from a single release
@@ -5410,18 +5275,18 @@ is made, both the branchpoint and release tags include the date that
 they are cut (YYYYMMDD) in the tag.  The branch tag, denoting the head
 of the branch, does not need this._
 
-15.3 Vendor Branches
+16.3 Vendor Branches
 ====================
 
 To avoid version conflicts, vendors are expected to modify the file
 `gdb/version.in' to include a vendor unique alphabetic identifier (an
 official GDB release never uses alphabetic characters in its version
-identifer).  E.g., `6.2widgit2', or `6.2 (Widgit Inc Patch 2)'.
+identifier).  E.g., `6.2widgit2', or `6.2 (Widgit Inc Patch 2)'.
 
-15.4 Experimental Branches
+16.4 Experimental Branches
 ==========================
 
-15.4.1 Guidelines
+16.4.1 Guidelines
 -----------------
 
 GDB permits the creation of branches, cut from the CVS repository, for
@@ -5467,7 +5332,7 @@ _a branch shall be branded using `version.in'_
      `6.2.50.20030303_owner_name' or `6.2 (Owner Name)'.
 
 
-15.4.2 Tags
+16.4.2 Tags
 -----------
 
 To simplify the identification of GDB branches, the following branch
@@ -5500,7 +5365,7 @@ For further information on CVS, see Concurrent Versions System
 
 File: gdbint.info,  Node: Start of New Year Procedure,  Next: Releasing GDB,  Prev: Versions and Branches,  Up: Top
 
-16 Start of New Year Procedure
+17 Start of New Year Procedure
 ******************************
 
 At the start of each new year, the following actions should be
@@ -5522,6 +5387,9 @@ performed:
           version-control: never
           End:
 
+   * Add an entry for the newly created ChangeLog file
+     (`ChangeLog-YYYY') in `gdb/config/djgpp/fnchange.lst'.
+
    * Update the copyright year in the startup message
 
      Update the copyright year in file `top.c', function
@@ -5530,10 +5398,10 @@ performed:
 
 File: gdbint.info,  Node: Releasing GDB,  Next: Testsuite,  Prev: Start of New Year Procedure,  Up: Top
 
-17 Releasing GDB
+18 Releasing GDB
 ****************
 
-17.1 Branch Commit Policy
+18.1 Branch Commit Policy
 =========================
 
 The branch commit policy is pretty slack.  GDB releases 5.0, 5.1 and
@@ -5561,7 +5429,7 @@ functionality there is little chance that a broken change will be fatal.
 This means that changes such as adding a new architectures or (within
 reason) support for a new host are considered acceptable._
 
-17.2 Obsoleting code
+18.2 Obsoleting code
 ====================
 
 Before anything else, poke the other developers (and around the source
@@ -5602,7 +5470,7 @@ wrong.  Secondly since it removes any history associated with the file
 (effectively clearing the slate) the developer has a much freer hand
 when it comes to fixing broken files._
 
-17.3 Before the Branch
+18.3 Before the Branch
 ======================
 
 The most important objective at this stage is to find and fix simple
@@ -5643,17 +5511,17 @@ number of errors and coding conventions.  The checks include things
 like using `malloc' instead of `xmalloc' and file naming problems.
 There shouldn't be any regressions.
 
-17.3.1 Review the bug data base
+18.3.1 Review the bug data base
 -------------------------------
 
 Close anything obviously fixed.
 
-17.3.2 Check all cross targets build
+18.3.2 Check all cross targets build
 ------------------------------------
 
 The targets are listed in `gdb/MAINTAINERS'.
 
-17.4 Cut the Branch
+18.4 Cut the Branch
 ===================
 
 Create the branch
@@ -5757,8 +5625,8 @@ Send an announcement to the mailing lists:
 
    * GDB Announcement mailing list <gdb-announce@sources.redhat.com>
 
-   * GDB Discsussion mailing list <gdb@sources.redhat.com> and GDB
-     Discsussion mailing list <gdb-testers@sources.redhat.com>
+   * GDB Discussion mailing list <gdb@sources.redhat.com> and GDB
+     Testers mailing list <gdb-testers@sources.redhat.com>
 
    _Pragmatics: The branch creation is sent to the announce list to
 ensure that people people not subscribed to the higher volume discussion
@@ -5774,12 +5642,12 @@ list are alerted._
 
    * The branch commit policy still holds.
 
-17.5 Stabilize the branch
+18.5 Stabilize the branch
 =========================
 
 Something goes here.
 
-17.6 Create a Release
+18.6 Create a Release
 =====================
 
 The process of creating and then making available a release is broken
@@ -5789,7 +5657,7 @@ process of releasing that tar ball.
 
    When making a release candidate just the first section is needed.
 
-17.6.1 Create a release candidate
+18.6.1 Create a release candidate
 ---------------------------------
 
 The objective at this stage is to create a set of tar balls that can be
@@ -5935,7 +5803,7 @@ for the `version.in' update `cronjob'.
 
 _Don't worry about the `gdb.info-??' or `gdb/p-exp.tab.c'.  They were
 generated (and yes `gdb.info-1' was also generated only something
-strange with CVS means that they didn't get supressed).  Fixing it
+strange with CVS means that they didn't get suppressed).  Fixing it
 would be nice though._
 
 Create compressed versions of the release
@@ -5959,7 +5827,7 @@ Note:
      can not include it in the compressed file.  This is also why the
      release process runs `tar' and `bzip2' as separate passes.
 
-17.6.2 Sanity check the tar ball
+18.6.2 Sanity check the tar ball
 --------------------------------
 
 Pick a popular machine (Solaris/PPC?) and try the build on that.
@@ -5983,7 +5851,7 @@ Pick a popular machine (Solaris/PPC?) and try the build on that.
      $1 = {argc = 136426532, argv = 0x821b7f0}
      (gdb)
 
-17.6.3 Make a release candidate available
+18.6.3 Make a release candidate available
 -----------------------------------------
 
 If this is a release candidate then the only remaining steps are:
@@ -5999,7 +5867,7 @@ If this is a release candidate then the only remaining steps are:
   4. Notify the relevant mailing lists ( <gdb@sources.redhat.com> and
      <gdb-testers@sources.redhat.com> that the candidate is available.
 
-17.6.4 Make a formal release available
+18.6.4 Make a formal release available
 --------------------------------------
 
 (And you thought all that was required was to post an e-mail.)
@@ -6092,7 +5960,7 @@ Post the `ANNOUNCEMENT' file you created above to:
 
    * GDB Bug Report mailing list <bug-gdb@gnu.org>
 
-17.6.5 Cleanup
+18.6.5 Cleanup
 --------------
 
 The release is out but you're still not finished.
@@ -6160,7 +6028,7 @@ of the most recent release.
 
    Also update the schedule `cronjob'.
 
-17.7 Post release
+18.7 Post release
 =================
 
 Remove any `OBSOLETE' code.
@@ -6168,7 +6036,7 @@ Remove any `OBSOLETE' code.
 
 File: gdbint.info,  Node: Testsuite,  Next: Hints,  Prev: Releasing GDB,  Up: Top
 
-18 Testsuite
+19 Testsuite
 ************
 
 The testsuite is an important component of the GDB package.  While it
@@ -6181,7 +6049,7 @@ cause a significant regression that went unnoticed for some time.
 themselves are calls to various `Tcl' procs; the framework runs all the
 procs and summarizes the passes and fails.
 
-18.1 Using the Testsuite
+19.1 Using the Testsuite
 ========================
 
 To run the testsuite, simply go to the GDB object directory (or to the
@@ -6241,7 +6109,7 @@ give a result of "UNRESOLVED", like this:
 
      UNRESOLVED: gdb.base/example.exp: This test script does not work on a remote host.
 
-18.2 Testsuite Organization
+19.2 Testsuite Organization
 ===========================
 
 The testsuite is entirely contained in `gdb/testsuite'.  While the
@@ -6293,7 +6161,7 @@ intelligibility.
      instance, `gdb.disasm' exercises various disassemblers, while
      `gdb.stabs' tests pathways through the stabs symbol reader.
 
-18.3 Writing Tests
+19.3 Writing Tests
 ==================
 
 In many areas, the GDB tests are already quite comprehensive; you
@@ -6305,8 +6173,14 @@ However, it doesn't cost anything to add new test procedures; for
 instance, `gdb.base/exprs.exp' defines a `test_expr' that calls
 `gdb_test' multiple times.
 
-   Only use `send_gdb' and `gdb_expect' when absolutely necessary, such
-as when GDB has several valid responses to a command.
+   Only use `send_gdb' and `gdb_expect' when absolutely necessary.
+Even if GDB has several valid responses to a command, you can use
+`gdb_test_multiple'.  Like `gdb_test', `gdb_test_multiple' recognizes
+internal errors and unexpected prompts.
+
+   Do not write tests which expect a literal tab character from GDB.
+On some operating systems (e.g. OpenBSD) the TTY layer expands tabs to
+spaces, so by the time GDB's output reaches expect the tab is gone.
 
    The source language programs do _not_ need to be in a consistent
 style.  Since GDB is used to debug programs written in many different
@@ -6318,7 +6192,7 @@ uniformly.
 
 File: gdbint.info,  Node: Hints,  Next: GDB Observers,  Prev: Testsuite,  Up: Top
 
-19 Hints
+20 Hints
 ********
 
 Check the `README' file, it often has useful information that does not
@@ -6332,7 +6206,7 @@ appear anywhere else in the directory.
 
 File: gdbint.info,  Node: Getting Started,  Up: Hints
 
-19.1 Getting Started
+20.1 Getting Started
 ====================
 
 GDB is a large and complicated program, and if you first starting to
@@ -6410,7 +6284,7 @@ Suggestions for improving the manual are always welcome, of course.
 
 File: gdbint.info,  Node: Debugging GDB,  Up: Hints
 
-19.2 Debugging GDB with itself
+20.2 Debugging GDB with itself
 ==============================
 
 If GDB is limping on your machine, this is the preferred way to get it
@@ -6434,7 +6308,7 @@ routines for your local machine where they will be accessed first by
    Also, make sure that you've either compiled GDB with your local cc,
 or have run `fixincludes' if you are compiling with gcc.
 
-19.3 Submitting Patches
+20.3 Submitting Patches
 =======================
 
 Thanks for thinking of offering your changes back to the community of
@@ -6498,7 +6372,7 @@ be for quite some time.
    Please send patches directly to the GDB maintainers
 <gdb-patches@sources.redhat.com>.
 
-19.4 Obsolete Conditionals
+20.4 Obsolete Conditionals
 ==========================
 
 Fragments of old code in GDB sometimes reference or set the following
@@ -6581,7 +6455,7 @@ emitted.
  -- Function: extern struct observer *observer_attach_EVENT
           (observer_EVENT_ftype *F)
      Using the function F, create an observer that is notified when
-     ever EVENT occures, return the observer.
+     ever EVENT occurs, return the observer.
 
  -- Function: extern void observer_detach_EVENT (struct observer
           *OBSERVER);
@@ -6620,6 +6494,11 @@ emitted.
 
  -- Function: void solib_unloaded (struct so_list *SOLIB)
      The shared library specified by SOLIB has been unloaded.
+
+ -- Function: void new_objfile (struct objfile *OBJFILE)
+     The symbol file specified by OBJFILE has been loaded.  Called with
+     OBJFILE equal to `NULL' to indicate previously loaded symbol table
+     data has now been invalidated.
 
 
 File: gdbint.info,  Node: GNU Free Documentation License,  Next: Index,  Prev: GDB Observers,  Up: Top
