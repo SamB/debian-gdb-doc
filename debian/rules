@@ -40,6 +40,7 @@ post-patches::
 	fi
 
 clean::
+	rm -rf $(DEB_BUILDDIR)
 	if test -f gdb/version.in.backup; then \
 	  mv -f gdb/version.in.backup gdb/version.in; \
 	fi
