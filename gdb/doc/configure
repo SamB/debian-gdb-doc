@@ -556,6 +556,7 @@ LIBOBJS
 REPORT_BUGS_TEXI
 REPORT_BUGS_TO
 PKGVERSION
+READLINE_TEXI_INCFLAG
 LN_S
 INSTALL_DATA
 INSTALL_SCRIPT
@@ -1874,6 +1875,9 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no, using $LN_S" >&5
 $as_echo "no, using $LN_S" >&6; }
 fi
+
+
+READLINE_TEXI_INCFLAG='-I $(READLINE_DIR)'
 
 
 

@@ -10,3 +10,6 @@ Files: /usr/share/info/stabs.info*
 Format: HTML
 Index: /usr/share/doc/gdb-doc/html/stabs/index.html
 Files: /usr/share/doc/gdb-doc/html/stabs/*.html
+
+Format: PDF
+Files: /usr/share/doc/gdb-doc/pdf/stabs.pdf.gz

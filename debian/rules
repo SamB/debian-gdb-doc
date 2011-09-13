@@ -10,6 +10,7 @@ include /usr/share/cdbs/1/class/autotools.mk
 
 # Override to only configure documentation.
 DEB_CONFIGURE_SCRIPT = $(CURDIR)/gdb/doc/configure
+DEB_CONFIGURE_EXTRA_FLAGS = --srcdir="../gdb/doc"
 
 # Rather paranoid than sorry. Make the shell exit with an error if an
 # untested command fails.
@@ -18,9 +19,13 @@ SHELL += -e
 INSTALL = /usr/bin/install -p
 export INSTALL
 
-DEB_MAKE_BUILD_TARGET = all info html
+DEB_MAKE_BUILD_TARGET = all info html pdf
 
-build/gdb-doc:: $(DEB_BUILDDIR)/html
+build/gdb-doc:: $(DEB_BUILDDIR)/html $(DEB_BUILDDIR)/pdf
+
+$(DEB_BUILDDIR)/pdf:
+	mkdir $(DEB_BUILDDIR)/pdf
+	mv $(DEB_BUILDDIR)/*.pdf $(DEB_BUILDDIR)/pdf/
 
 $(DEB_BUILDDIR)/html:
 	mkdir $(DEB_BUILDDIR)/html
@@ -30,8 +35,10 @@ $(DEB_BUILDDIR)/html:
 
 common-binary-post-install-indep::
 	rm -f debian/gdb-doc/usr/share/info/annota*
+	rm -f debian/gdb-doc/usr/share/info/dir*
 	install -d debian/gdb-doc/usr/share/doc/gdb
 	ln -s ../gdb-doc/html debian/gdb-doc/usr/share/doc/gdb/html
+	ln -s ../gdb-doc/pdf debian/gdb-doc/usr/share/doc/gdb/pdf
 
 post-patches::
 	if ! test -f gdb/version.in.backup; then \

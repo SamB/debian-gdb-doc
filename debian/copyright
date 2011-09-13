@@ -1,6 +1,7 @@
 This is the Debian GNU/Linux packaged version of the GDB manuals.
 
 This package was assembled by Daniel Jacobowitz, <dan@debian.org>.
+This package is maintained by Hector Oron Martinez, <zumbi@debian.org>.
 
 GDB itself is Copyright (C) 2008 Free Software Foundation, Inc.
 

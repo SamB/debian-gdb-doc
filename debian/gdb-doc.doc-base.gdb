@@ -10,3 +10,6 @@ Files: /usr/share/info/gdb.info*
 Format: HTML
 Index: /usr/share/doc/gdb-doc/html/gdb/index.html
 Files: /usr/share/doc/gdb-doc/html/gdb/*.html
+
+Format: PDF
+Files: /usr/share/doc/gdb-doc/pdf/gdb.pdf.gz

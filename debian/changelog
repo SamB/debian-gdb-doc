@@ -1,3 +1,14 @@
+gdb-doc (7.3-1) unstable; urgency=low
+
+  * New upstream release.
+  * Regenerate gdb/doc/configure.
+  * Add myself to debian/copyright. 
+  * Enable PDF format. 
+  * Drop dir.gz from info directory. 
+  * Add build dependency on texlive-generic-recommended.
+
+ -- Hector Oron <zumbi@debian.org>  Wed, 14 Sep 2011 00:36:23 +0200
+
 gdb-doc (7.2-2) unstable; urgency=low
 
   * New maintainer. (Closes: #631742: ITA: gdb-doc -- The GNU Debugger
