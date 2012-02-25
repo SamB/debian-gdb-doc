@@ -45,9 +45,10 @@ post-patches::
 	  mv -f gdb/version.in gdb/version.in.backup; \
 	  sed -e 's/$$/-debian/' < gdb/version.in.backup > gdb/version.in; \
 	fi
+	cd gdb/doc && autoreconf
 
 clean::
-	rm -rf $(DEB_BUILDDIR)
+	rm -rf $(DEB_BUILDDIR) gdb/doc/configure
 	if test -f gdb/version.in.backup; then \
 	  mv -f gdb/version.in.backup gdb/version.in; \
 	fi

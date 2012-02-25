@@ -2,7 +2,7 @@ Source: gdb-doc
 Maintainer: Hector Oron <zumbi@debian.org>
 Section: non-free/devel
 Priority: optional
-Standards-Version: 3.9.2
+Standards-Version: 3.9.3
 Build-Depends: cdbs (>= 0.4.17), debhelper (>= 7)
 Build-Depends-Indep: autoconf, texinfo (>= 4.7-2.2), texlive-generic-recommended, texlive-latex-base
 
